@@ -1,0 +1,14 @@
+Impartus Downloader App for Android
+
+
+This is an Android app developed by Jitender Singh, the source code shall be available on github soon under the MIT license;
+the apk bundle is also available on Google Play.
+
+I acknowledge that the application does not collect / share any credentials, users info, personally identifiable info or any other sensitive data.
+All the downloaded lecture videos, for which the user has prior access via impartus platform, stay on the user's device.
+
+In case you fina any security vulnerability, or any questions regarding user privacy, feel free to drop me an email.
+
+
+Jitender Singh.
+paljsingh@gmail.com
