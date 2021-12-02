@@ -19,3 +19,9 @@ Thumbrule for downloading apk -
   
   *x86* may be none, probably some old ubuntu based phones.
   
+
+UI
+===
+
+![Impartus Downloader for Android](https://drive.google.com/uc?export=view&id=1RKsNUYcpzRthMpOV14zC4ug2YRtkSreB)
+
