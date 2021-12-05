@@ -64,7 +64,6 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
     public void onBindViewHolder(@NonNull LectureAdapter.ViewHolder holder, @SuppressLint("RecyclerView") int position) {
         LectureItem lectureItem = lectureItems.get(position);
         File mkvFilePath = Utils.getMkvFilePath(lectureItem, impartus.getDownloadDir());
-        Log.d(this.getClass().getName(), String.format("OnBindViewHolder called for %d", lectureItem.getViewPosition()));
         if (mkvFilePath.exists()) {
             lectureItem.setDownloadPercent(100);
             lectureItem.setOfflinePath(mkvFilePath);
@@ -186,8 +185,6 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
         @Override
         protected Boolean doInBackground(LectureItem... items) {
             lectureItem = items[0];
-            Log.d(this.getClass().getName(), String.format("doInBackground called for %s!", lectureItem.getViewPosition()));
-
             return impartus.downloadLecture(lectureItem, new Callable() {
                 @Override
                 public void call(int value) {
@@ -198,8 +195,6 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
 
         @Override
         protected void onProgressUpdate(Integer... progress) {
-            Log.d(this.getClass().getName(), String.format("notifyItemChanged called for %s!", lectureItem.getViewPosition()));
-
             notifyItemChanged(lectureItem.getViewPosition());
         }
 
