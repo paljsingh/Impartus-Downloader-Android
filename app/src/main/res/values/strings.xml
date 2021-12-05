@@ -4,9 +4,6 @@
     <string name="search">Search</string>
     <string name="download">Download</string>
     <string name="app_logo">App Logo</string>
-    <string name="login">Login</string>
-    <string name="password">Password</string>
-    <string name="email">Email</string>
     <string name="url">URL</string>
     <string name="topic">topic</string>
     <string name="faculty">faculty</string>
@@ -25,4 +22,5 @@
     <string name="password">Password</string>
     <string name="email">Email</string>
     <string name="login">Login</string>
+    <string name="username">Username</string>
 </resources>
