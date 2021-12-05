@@ -373,9 +373,11 @@ public class Impartus implements Parcelable {
 
                     // decrypt stream file if encrypted.
                     if (stream.getEncryptionMethod().equals("NONE")) {
+                        Log.d(this.getClass().getName(), String.format("file %s not encrypted", encStreamFilepath));
                         tsFiles.add(encStreamFilepath);
                     } else {
                         File decryptedStreamFilepath = decryptStreamFile(stream, encStreamFilepath, encryptionKeys, tempDir);
+                        Log.d(this.getClass().getName(), String.format("file %s -> %s decrypted", encStreamFilepath, decryptedStreamFilepath));
 
                         tsFiles.add(decryptedStreamFilepath);
                         filesToDelete.add(decryptedStreamFilepath);
