@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory>
+        <Preference
+            app:title="Back"
+            app:key="customPref"/>
+
+        <SwitchPreferenceCompat
+            app:key="regular_videos"
+            app:icon="@mipmap/regular"
+            app:title="Regular Videos"
+            app:defaultValue="true"
+            app:summary="Show Regular videos in the content list."/>
+
+        <SwitchPreferenceCompat
+            app:key="flipped_videos"
+            app:title="Flipped Videos"
+            app:icon="@mipmap/flipped"
+            app:defaultValue="false"
+            app:summary="Show Flipped videos in the content list."/>
+    </PreferenceCategory>
+
+    <PreferenceCategory>
+        <ListPreference
+            app:icon="@mipmap/video_quality"
+            app:title="Flipped Lecture Quality"
+            app:summary="Video quality for flipped lectures."
+            app:key="video_quality"
+            app:defaultValue="highest"
+            app:entries="@array/video_quality_keys"
+            app:entryValues="@array/video_quality_values" />
+
+        <Preference
+            app:icon="@mipmap/folder"
+            app:key="output_path"
+            app:title="Output Directory"
+            app:summary="Directory to save the videos."/>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory>
+        <SwitchPreferenceCompat
+            app:key="debug"
+            app:title="Debug"
+            app:icon="@mipmap/debug"
+            app:defaultValue="false"
+            app:summary="Debugging Enabled?"/>
+
+        <Preference
+            app:key="clear_data"
+            app:icon="@mipmap/delete"
+            app:title="Clear Temporary Data"
+            app:summary="Clear temporary files"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory>
+        <Preference
+            app:key="logout"
+            app:icon="@mipmap/logout"
+            app:title="Log out"
+            app:summary="Log out "/>
+    </PreferenceCategory>
+</PreferenceScreen>

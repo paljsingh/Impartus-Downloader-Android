@@ -1,0 +1,167 @@
+package jp.id.core;
+
+import android.util.Log;
+
+import com.arthenica.ffmpegkit.ExecuteCallback;
+import com.arthenica.ffmpegkit.ReturnCode;
+import com.arthenica.ffmpegkit.Session;
+import com.arthenica.ffmpegkit.SessionState;
+
+import org.apache.commons.io.FileUtils;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Encoder {
+
+    public static ExecuteCallback defaultCallback = new ExecuteCallback() {
+        @Override
+        public void apply(Session session) {
+            SessionState state = session.getState();
+            ReturnCode returnCode = session.getReturnCode();
+            Log.d(Encoder.class.getName(), String.format("FFmpeg process exited with state %s and rc %s.%s", state, returnCode, session.getFailStackTrace()));
+        }
+    };
+
+    public static File join(List<File> files, String dir, int trackNumber) {
+        File outFilePath = new File(String.format("%s/track-%s.ts", dir, trackNumber));
+        for(File file: files) {
+            try {
+                byte[] bytes = FileUtils.readFileToByteArray(file);
+                FileUtils.writeByteArrayToFile(outFilePath, bytes, true);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+        return outFilePath;
+    }
+
+    public static boolean splitTrack(final List<File> trackFiles, final int duration, final boolean debug) {
+        String logLevel = "quiet";
+        if (debug) {
+            logLevel = "verbose";
+        }
+
+        // take out splices from track 0 ts_file and create ts_file1, ts_file2 ..
+        for (int i=1; i < trackFiles.size(); i++ ) {
+            int startSs = i * duration;
+            List<String> commandArgs = new ArrayList<>();
+            commandArgs.add("-y");
+            commandArgs.add("-loglevel");
+            commandArgs.add(logLevel);
+            commandArgs.add("-i");
+            commandArgs.add(trackFiles.get(0).getAbsolutePath());
+            commandArgs.add("-c");
+            commandArgs.add("copy");
+            commandArgs.add("-ss");
+            commandArgs.add(String.valueOf(startSs));
+            commandArgs.add("-t");
+            commandArgs.add(String.valueOf(duration));
+            commandArgs.add(trackFiles.get(i).getAbsolutePath());
+
+            Utils.runFfmpeg(commandArgs);
+        }
+
+        // trim ts_file 0, so that it contains only track 0 content
+        String tmpFilePath = String.format("%s/%s", trackFiles.get(0).getParent(), "tmp.ts");
+        List<String> commandArgs = new ArrayList<>();
+        commandArgs.add("-y");
+        commandArgs.add("-loglevel");
+        commandArgs.add(logLevel);
+        commandArgs.add("-i");
+        commandArgs.add(trackFiles.get(0).getAbsolutePath());
+        commandArgs.add("-c");
+        commandArgs.add("copy");
+        commandArgs.add("-ss");
+        commandArgs.add("0");
+        commandArgs.add("-t");
+        commandArgs.add(String.valueOf(duration));
+        commandArgs.add(tmpFilePath);
+        Utils.runFfmpeg(commandArgs);
+
+        return new File(tmpFilePath).renameTo(trackFiles.get(0).getAbsoluteFile());
+    }
+
+    public static boolean encodeMkv(final int id, final List<File> trackFiles, final String mkvFilePath, final int duration, final boolean flipped, final boolean debug) {
+        // probe size is needed to lookup timestamp info in files where multiple tracks are
+        // joined in a single channel and possibly with incorrect timestamps.
+        String probeSize = "2147483647";
+
+        // ffmpeg log_level.
+        String ffmpegLogLevel = "quiet";
+        if (debug) {
+            ffmpegLogLevel = "verbose";
+        }
+        try {
+            // ffmpeg command syntax we expect to run
+            // ffmpeg [global_flags] [in1_flags] -i in1.ts [in2_flags] -i in2.ts .. -c copy -map 0 -map 1 .. $outfile
+            List<String> inputArgs = new ArrayList<>();
+            List<String> mapArgs = new ArrayList<>();
+
+            boolean splitFlag = false;
+
+            for (int i = 0; i < trackFiles.size(); i++) {
+                File tsFile = trackFiles.get(i);
+                inputArgs.add("-analyzeduration");
+                inputArgs.add(probeSize);
+                inputArgs.add("-probesize");
+                inputArgs.add(probeSize);
+                inputArgs.add("-i");
+                inputArgs.add(tsFile.getAbsolutePath());
+
+                mapArgs.add("-map");
+                mapArgs.add(String.valueOf(i));
+
+                // if any of the ts_file is 0 sized, it's content exists in track 0
+                // split track 0, if that is the case.
+                if (tsFile.length() == 0) {
+                    splitFlag = true;
+                }
+            }
+
+            if (splitFlag) {
+                Log.d(Encoder.class.getName(), String.format("[%s]: Splitting track 0 .. ", id));
+                boolean splitSuccess = Encoder.splitTrack(trackFiles, duration, debug);
+                if (! splitSuccess) {
+                    Log.e(Encoder.class.getName(), "Error splitting track 0");
+                    return false;
+                }
+            }
+
+            Log.i(Encoder.class.getName(), String.format("[%s]: Encoding output file ..", id));
+            List<String> commandArgs = new ArrayList<>();
+            commandArgs.add("-y");
+            commandArgs.add("-loglevel");
+            commandArgs.add(ffmpegLogLevel);
+            commandArgs.addAll(inputArgs);
+
+            // adding id to metadata.
+            if (flipped) {
+                commandArgs.add("-metadata");
+                commandArgs.add(String.format("fcid=%s", id));
+            } else {
+                commandArgs.add("-metadata");
+                commandArgs.add(String.format("ttid=%s", id));
+            }
+
+            commandArgs.add("-c");
+            commandArgs.add("copy");
+
+            commandArgs.addAll(mapArgs);
+            commandArgs.add(mkvFilePath);
+
+            Utils.runFfmpeg(commandArgs);
+        } catch (Exception ex) {
+            Log.e(Encoder.class.getName(), String.format("[%s]: ffmpeg exception: %s", id, ex));
+            StringBuilder fileNames = new StringBuilder(trackFiles.get(0).getName());
+            for(int i=1; i<trackFiles.size(); i++) {
+                fileNames.append(", ").append(trackFiles.get(i).getName());
+            }
+            Log.e(Encoder.class.getName(), String.format("[%s]: Check the ts file(s) generated at location: %s", id, fileNames));
+            return false;
+        }
+        return true;
+    }
+}

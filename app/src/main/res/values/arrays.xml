@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+    <string-array name="video_quality_keys">
+        <item>Highest Supported</item>
+        <item>1280x720</item>
+        <item>800x600</item>
+        <item>600x480</item>
+        <item>400x240</item>
+        <item>Lowest Supported</item>
+    </string-array>
+
+    <string-array name="video_quality_values">
+        <item>highest</item>
+        <item>1280xHD</item>
+        <item>800xHigh</item>
+        <item>600xMedium</item>
+        <item>lowest</item>
+    </string-array>
+
+</resources>
