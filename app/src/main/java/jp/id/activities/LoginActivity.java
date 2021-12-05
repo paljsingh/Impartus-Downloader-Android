@@ -1,4 +1,4 @@
-package jp.id;
+package jp.id.activities;
 
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
@@ -7,7 +7,7 @@ import android.os.StrictMode;
 import android.view.View;
 import android.widget.EditText;
 
-import jp.id.activities.VideoActivity;
+import jp.id.R;
 import jp.id.core.Impartus;
 import jp.id.core.Utils;
 
