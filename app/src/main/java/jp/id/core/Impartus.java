@@ -41,7 +41,7 @@ public class Impartus implements Parcelable {
     private final File downloadDir;
     private OkHttpClient client;
 
-    private String flippedVideoQuality = "highest";
+    private String flippedVideoQuality;
 
     public Impartus(final String baseUrl, final File cacheDir) {
         this.baseUrl = baseUrl;
@@ -388,7 +388,8 @@ public class Impartus implements Parcelable {
         return subjects;
     }
 
-    public boolean downloadLecture(LectureItem item, Callable task) {
+    public boolean downloadLecture(final LectureItem item, final Callable task,
+                                   final String flippedVideoQuality, final boolean debug) {
         // Encode all ts files into a single output mkv.
 
         File mkvFilePath = Utils.getMkvFilePath(item, downloadDir);
@@ -396,7 +397,7 @@ public class Impartus implements Parcelable {
             return true;
         }
 
-        String[] m3u8Content = getM3u8Content(item);
+        String[] m3u8Content = getM3u8Content(item, flippedVideoQuality);
 
         if (m3u8Content.length > 0) {
             // parse m3u8 file and extract urls for key files, media files for all the tracks.
@@ -463,8 +464,6 @@ public class Impartus implements Parcelable {
                     return false;
                 }
             }
-
-            boolean debug = false;
 
             // encode mkv.
             boolean encodeSuccess = Encoder.encodeMkv(item.getId(), trackFiles, mkvFilePath.getAbsolutePath(), item.getDuration(), item.isFlipped(), debug);
@@ -562,7 +561,7 @@ public class Impartus implements Parcelable {
         return m3u8Urls;
     }
 
-    private String[] getM3u8Content(LectureItem item) {
+    private String[] getM3u8Content(final LectureItem item, final String flippedVideoQuality) {
         String masterUrl;
         if (item.isFlipped()) {
             masterUrl = String.format("%s/api/fetchvideo?fcid=%s&token=%s&type=index.m3u8", baseUrl, item.getId(), sessionToken);

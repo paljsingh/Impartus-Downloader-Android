@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 
+import androidx.preference.PreferenceManager;
+
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
@@ -95,9 +97,19 @@ public class Utils {
         editor.apply();
     }
 
-    public static String getKeyFromPrefs(final Activity activity, final String key) {
-        SharedPreferences prefs = activity.getSharedPreferences("jp.id_preferences", Context.MODE_PRIVATE);
-        return prefs.getString(key, null);
+    public static String getKeyFromPrefs(final Activity activity, final String key, final String defaultValue) {
+        return activity.getSharedPreferences("jp.id_preferences", Context.MODE_PRIVATE).getString(key, defaultValue);
+    }
+    public static boolean getKeyFromPrefs(final Activity activity, final String key, final boolean defaultValue) {
+        return activity.getSharedPreferences("jp.id_preferences", Context.MODE_PRIVATE).getBoolean(key, defaultValue);
+    }
+
+    public static String getKeyFromPrefs(final Context context, final String key, final String defaultValue) {
+        return PreferenceManager.getDefaultSharedPreferences(context).getString(key, defaultValue);
+    }
+
+    public static boolean getKeyFromPrefs(final Context context, final String key, final boolean defaultValue) {
+        return PreferenceManager.getDefaultSharedPreferences(context).getBoolean(key, defaultValue);
     }
 
     public static String getUrlFromPrefs(final Activity activity) {

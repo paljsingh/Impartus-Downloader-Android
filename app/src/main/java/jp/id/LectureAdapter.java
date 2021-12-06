@@ -23,6 +23,7 @@ import org.apache.commons.text.WordUtils;
 import java.io.File;
 import java.util.List;
 
+import jp.id.activities.VideoActivity;
 import jp.id.command.Callable;
 import jp.id.core.Impartus;
 import jp.id.core.Utils;
@@ -181,12 +182,14 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
         @Override
         protected Boolean doInBackground(LectureItem... items) {
             lectureItem = items[0];
+            boolean debug = Utils.getKeyFromPrefs(context, "debug", false);
+            String videoQuality = Utils.getKeyFromPrefs(context, "video_quality", "highest");
             return impartus.downloadLecture(lectureItem, new Callable() {
                 @Override
                 public void call(int value) {
                     publishProgress(value);
                 }
-            });
+            }, videoQuality, debug);
         }
 
         @Override

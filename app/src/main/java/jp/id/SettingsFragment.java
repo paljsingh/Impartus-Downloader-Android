@@ -1,5 +1,6 @@
 package jp.id;
 
+import android.app.ActionBar;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -25,15 +26,8 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         setupEventListeners();
     }
 
-    public void onBackPressed() {
-        Log.d(this.getClass().getName(), "onBackPressed Called");
-        Intent intent = new Intent(this.getContext(), VideoActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        startActivity(intent);
-    }
-
     private void setupEventListeners() {
-        String[] keys = {"regular_videos", "flipped_videos", "video_quality", "output_path", "debug", "clear_data", "logout"};
+        String[] keys = {"clear_data", "logout", "settings"};
         for(String key: keys) {
             Preference preferenceMap = findPreference(key);
             if (key.equals("clear_data")) {
@@ -45,21 +39,23 @@ public class SettingsFragment extends PreferenceFragmentCompat {
                                 return true;
                             }
                         });
-            } else if(key.equals("output_path")) {
-                preferenceMap.setOnPreferenceClickListener(
-                        new Preference.OnPreferenceClickListener() {
-                            @Override
-                            public boolean onPreferenceClick(Preference arg0) {
-                                selectedOutputFolder();
-                                return true;
-                            }
-                        });
             } else if(key.equals("logout")) {
                 preferenceMap.setOnPreferenceClickListener(
                         new Preference.OnPreferenceClickListener() {
                             @Override
                             public boolean onPreferenceClick(Preference arg0) {
                                 logout();
+                                return true;
+                            }
+                        });
+            } else if(key.equals("settings")) {
+                preferenceMap.setOnPreferenceClickListener(
+                        new Preference.OnPreferenceClickListener() {
+                            @Override
+                            public boolean onPreferenceClick(Preference arg0) {
+                                Intent intent = new Intent(getActivity(), VideoActivity.class);
+                                getActivity().finish();
+                                startActivity(intent);
                                 return true;
                             }
                         });

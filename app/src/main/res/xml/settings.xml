@@ -1,15 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-
     <Preference
-        android:title="Settings"
+        android:key="settings"
         android:icon="@drawable/back"
-        android:key="@string/settings"
-        android:background="@color/transparent"
-        />
+        android:title="Settings" />
 
     <PreferenceCategory>
-
         <SwitchPreferenceCompat
             android:key="regular_videos"
             android:icon="@drawable/regular"
@@ -34,13 +30,6 @@
             android:defaultValue="highest"
             android:entries="@array/video_quality_keys"
             android:entryValues="@array/video_quality_values" />
-
-        <Preference
-            android:icon="@drawable/folder"
-            android:key="output_path"
-            android:title="Output Directory"
-            android:summary="Directory to save the videos."/>
-
     </PreferenceCategory>
 
     <PreferenceCategory>

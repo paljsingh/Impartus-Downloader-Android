@@ -9,15 +9,20 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
 import android.app.ProgressDialog;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Parcelable;
 import android.os.StrictMode;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,8 +51,14 @@ public class VideoActivity extends AppCompatActivity {
         }
         setContentView(R.layout.activity_video);
 
-        if (savedInstanceState == null) {
+        String baseUrl = Utils.getUrlFromPrefs(this);
+        String sessionToken = Utils.getSessionTokenFromPrefs(this);
+        impartus = new Impartus(baseUrl, this.getCacheDir(), sessionToken);
+
+        if (! getPersistedData()) {
             getAsyncLectures();
+        } else {
+            attachAdapter();
         }
 
         if (!hasStoragePermission()) {
@@ -57,18 +68,7 @@ public class VideoActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         assert toolbar != null;
         setSupportActionBar(toolbar);
-    }
 
-    @Override
-    public void onSaveInstanceState(@NonNull Bundle savedInstanceState) {
-        super.onSaveInstanceState(savedInstanceState);
-        savedInstanceState.putParcelableArrayList("lectureitems",
-                (ArrayList<? extends Parcelable>) lectureItems);
-    }
-
-    @Override
-    public void onRestoreInstanceState(Bundle savedInstanceState) {
-        lectureItems = savedInstanceState.getParcelableArrayList("lectureitems");
     }
 
     @Override
@@ -94,14 +94,39 @@ public class VideoActivity extends AppCompatActivity {
                     REQUEST_WRITE_STORAGE);
     }
 
+    private void persistData(List<LectureItem> items) {
+        Log.d(this.getClass().getName(), "inside set persist data");
+
+        SharedPreferences prefs = getSharedPreferences("data", MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        Gson gson = new Gson();
+        editor.putString("lectureitems", gson.toJson(items));
+        editor.putLong("when", System.currentTimeMillis());
+        Log.d(this.getClass().getName(), String.format("%s/%s", gson.toJson(lectureItems), System.currentTimeMillis()));
+        editor.apply();
+    }
+
+    private boolean getPersistedData() {
+        long threshold = 3600*1000; // millis
+
+        lectureItems = new ArrayList<>();
+        Log.d(this.getClass().getName(), "inside get Persisted Data");
+        SharedPreferences prefs = getSharedPreferences("data", MODE_PRIVATE);
+        String jsonArray = prefs.getString("lectureitems", null);
+        long lastPersistEpoch = prefs.getLong("when", 0L);
+        Log.d(this.getClass().getName(), String.format("%s / %s", jsonArray.length(), lastPersistEpoch));
+        if (jsonArray != null && (System.currentTimeMillis() - lastPersistEpoch <= threshold) ) {
+            Type listType = new TypeToken<ArrayList<LectureItem>>(){}.getType();
+            lectureItems = new Gson().fromJson(jsonArray, listType);
+            Log.d(this.getClass().getName(), "return true");
+            return true;
+        }
+        return false;
+    }
+
     private void getAsyncLectures() {
-        String baseUrl = Utils.getUrlFromPrefs(this);
-        String sessionToken = Utils.getSessionTokenFromPrefs(this);
-
-        impartus = new Impartus(baseUrl, this.getCacheDir(), sessionToken);
-
         PopulateLectures asyncTask = new PopulateLectures();
-        asyncTask.execute(impartus);
+        asyncTask.execute();
     }
 
     protected void attachAdapter() {
@@ -115,15 +140,13 @@ public class VideoActivity extends AppCompatActivity {
         SettingsFragment settingsFragment = new SettingsFragment();
         setContentView(R.layout.settings);
 
-//        settingsFragment
-        getSupportFragmentManager().beginTransaction().replace(R.id.settings, settingsFragment).commit();
+        getSupportFragmentManager().beginTransaction().add(R.id.settings, settingsFragment).commit();
     }
 
-    private class PopulateLectures extends AsyncTask<Impartus, Void, Void> {
+    private class PopulateLectures extends AsyncTask<Void, Void, Void> {
         private final ProgressDialog progressbar = new ProgressDialog(VideoActivity.this);
         private List<LectureItem> lectureItems;
 
-        private Impartus impartus;
 
         @Override
         protected void onPreExecute() {
@@ -136,18 +159,19 @@ public class VideoActivity extends AppCompatActivity {
         }
 
         @Override
-        protected Void doInBackground(Impartus... imps) {
-            impartus = imps[0];
+        protected Void doInBackground(Void... aVoid) {
             final List<SubjectItem> subjects = impartus.getSubjects();
 
             lectureItems = new ArrayList<>();
-            boolean fetchRegular = Boolean.getBoolean(Utils.getKeyFromPrefs(VideoActivity.this, "regular"));
+            boolean fetchRegular = Utils.getKeyFromPrefs(VideoActivity.this, "regular_videos", true);
             if (fetchRegular) {
+                Log.d(this.getClass().getName(), "fetching regular lectures");
                 lectureItems.addAll(impartus.getLectures(subjects));
             }
 
-            boolean fetchFlipped = Boolean.getBoolean(Utils.getKeyFromPrefs(VideoActivity.this, "flipped"));
+            boolean fetchFlipped = Utils.getKeyFromPrefs(VideoActivity.this, "flipped_videos", false);
             if (fetchFlipped) {
+                Log.d(this.getClass().getName(), "fetching flipped lectures");
                 lectureItems.addAll(impartus.getFlippedLectures(subjects));
             }
 
@@ -160,6 +184,7 @@ public class VideoActivity extends AppCompatActivity {
             VideoActivity.this.lectureItems = lectureItems;
             progressbar.hide();
             progressbar.dismiss();
+            persistData(lectureItems);
 
             attachAdapter();
         }
