@@ -1,7 +1,5 @@
 package jp.id.core;
 
-import android.util.Log;
-
 import org.apache.commons.lang3.RegExUtils;
 
 import java.util.ArrayList;

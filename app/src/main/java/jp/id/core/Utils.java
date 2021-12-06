@@ -6,9 +6,7 @@ import android.content.SharedPreferences;
 import android.util.Log;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import com.arthenica.ffmpegkit.ExecuteCallback;
@@ -18,7 +16,6 @@ import com.arthenica.ffmpegkit.FFmpegSession;
 import org.apache.commons.lang3.RegExUtils;
 
 import jp.id.model.LectureItem;
-import android.content.SharedPreferences;
 
 public class Utils {
 
@@ -98,6 +95,11 @@ public class Utils {
         editor.apply();
     }
 
+    public static String getKeyFromPrefs(final Activity activity, final String key) {
+        SharedPreferences prefs = activity.getSharedPreferences("jp.id_preferences", Context.MODE_PRIVATE);
+        return prefs.getString(key, null);
+    }
+
     public static String getUrlFromPrefs(final Activity activity) {
         SharedPreferences prefs = activity.getSharedPreferences("session", Context.MODE_PRIVATE);
         return prefs.getString("url", null);
@@ -114,5 +116,7 @@ public class Utils {
         editor.remove("token");
         editor.apply();
     }
+
+
 
 }

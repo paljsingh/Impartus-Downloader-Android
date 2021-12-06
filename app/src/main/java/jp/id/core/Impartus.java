@@ -5,7 +5,6 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Base64;
 import android.util.Log;
-import android.widget.Toast;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -34,7 +33,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import okio.Timeout;
 
 public class Impartus implements Parcelable {
     private String sessionToken = null;
@@ -258,11 +256,66 @@ public class Impartus implements Parcelable {
         return new String(data, StandardCharsets.UTF_8);
     }
 
-    public List<LectureItem> getLectures() {
+    public List<LectureItem> getFlippedLectures(List<SubjectItem> subjects) {
+
+        final List<LectureItem> lectures = new ArrayList<>();
+
+        int viewIndex = 0;
+        for (int i = 0; i < subjects.size(); i++) {
+            SubjectItem subjectItem = subjects.get(i);
+
+            String url = String.format("%s/api/subjects/flipped/%s/%s", baseUrl, subjectItem.getId(), subjectItem.getSessionId());
+            Response response = sendGetRequest(url, true);
+
+            try {
+                if (response.code() == 200) {
+                    Log.d(this.getClass().getName(), String.format("Fetched lectures list for %s.", subjectItem.getName()));
+                    String body = Objects.requireNonNull(response.body()).string();
+                    JSONArray jsonArray = new JSONArray(body);
+
+                    for (int j = 0; j < jsonArray.length(); j++) {
+                        JSONObject category = jsonArray.getJSONObject(j);
+
+                        // flipped lectures do not have lecture sequence number field, generate seq-no setting the oldest
+                        // lecture with seq-no=1. By default impartus portal return lectures with highest ttid/fcid first.
+                        JSONArray lecturesInCategory = (JSONArray) category.get("lectures");
+                        int numLecturesInCategory = lecturesInCategory.length();
+
+                        for (int k = 0; k < numLecturesInCategory; k++) {
+                            JSONObject lecture = lecturesInCategory.getJSONObject(j);
+
+
+                            int lectureId = Integer.parseInt(lecture.get("fcid").toString());
+                            int seqNo = numLecturesInCategory - k;
+                            String topic = lecture.get("topic").toString();
+                            String professorName = lecture.get("professorName").toString();
+
+                            String date = StringUtils.substring(lecture.get("startTime").toString(), 0, 10);
+
+                            int tracks = Integer.parseInt(lecture.get("tapNToggle").toString());
+                            int duration = Integer.parseInt(lecture.get("actualDuration").toString());
+
+                            LectureItem lectureItem = new LectureItem(lectureId, seqNo, topic, professorName, date, tracks, duration, subjectItem.getName(), true, viewIndex);
+                            lectures.add(lectureItem);
+                            viewIndex++;
+                            Log.d(this.getClass().getName(), String.format("Added Lecture: %s", topic));
+                        }
+                    }
+                } else {
+                    Log.e(this.getClass().getName(), "Error authenticating with impartus.");
+                    Log.e(this.getClass().getName(), String.format("response body: %s", response.body()));
+                }
+            } catch (IOException | JSONException e) {
+                e.printStackTrace();
+            }
+        }
+        return lectures;
+    }
+
+    public List<LectureItem> getLectures(List<SubjectItem> subjects) {
         final List<LectureItem> lectures = new ArrayList<>();
 
 
-        final List<SubjectItem> subjects = getSubjects();
         int viewIndex = 0;
         for (int i = 0; i < subjects.size(); i++) {
             SubjectItem subjectItem = subjects.get(i);

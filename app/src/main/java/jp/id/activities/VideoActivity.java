@@ -4,7 +4,6 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
-import androidx.fragment.app.FragmentActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -16,9 +15,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.os.StrictMode;
-import android.preference.PreferenceFragment;
-import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.View;
 import android.widget.Toast;
 
@@ -31,6 +27,7 @@ import jp.id.SettingsFragment;
 import jp.id.core.Impartus;
 import jp.id.core.Utils;
 import jp.id.model.LectureItem;
+import jp.id.model.SubjectItem;
 
 public class VideoActivity extends AppCompatActivity {
 
@@ -141,8 +138,19 @@ public class VideoActivity extends AppCompatActivity {
         @Override
         protected Void doInBackground(Impartus... imps) {
             impartus = imps[0];
+            final List<SubjectItem> subjects = impartus.getSubjects();
 
-            lectureItems = impartus.getLectures();
+            lectureItems = new ArrayList<>();
+            boolean fetchRegular = Boolean.getBoolean(Utils.getKeyFromPrefs(VideoActivity.this, "regular"));
+            if (fetchRegular) {
+                lectureItems.addAll(impartus.getLectures(subjects));
+            }
+
+            boolean fetchFlipped = Boolean.getBoolean(Utils.getKeyFromPrefs(VideoActivity.this, "flipped"));
+            if (fetchFlipped) {
+                lectureItems.addAll(impartus.getFlippedLectures(subjects));
+            }
+
             return null;
         }
 
