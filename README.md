@@ -23,7 +23,13 @@ Thumbrule for downloading apk -
 UI
 ===
 
-![Impartus Downloader for Android - Videos Tab](https://drive.google.com/uc?export=view&id=1SdnszO8eziScnX9JNnuJq8h9IjA4JFW0)
+Impartus Downloader for Android - Videos Tab
+<br/>
+<img src="https://drive.google.com/uc?export=view&id=1SdnszO8eziScnX9JNnuJq8h9IjA4JFW0" width="300" />
 
-![Impartus Downloader for Android- Settings](https://drive.google.com/uc?export=view&id=1SbDZNVG6nVX-N0FTO8AxNbPOy4Rt72tx)
+<hr/>
+
+[Impartus Downloader for Android- Settings]
+<br/>
+<img src="https://drive.google.com/uc?export=view&id=1SbDZNVG6nVX-N0FTO8AxNbPOy4Rt72tx" width="300" />
 
