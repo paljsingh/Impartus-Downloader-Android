@@ -5,11 +5,11 @@
     <PreferenceCategory>
         <Preference
             app:title="Back"
-            app:key="customPref"/>
+            app:key="@string/settings"/>
 
         <SwitchPreferenceCompat
             app:key="regular_videos"
-            app:icon="@mipmap/regular"
+            app:icon="@drawable/regular"
             app:title="Regular Videos"
             app:defaultValue="true"
             app:summary="Show Regular videos in the content list."/>
@@ -17,14 +17,14 @@
         <SwitchPreferenceCompat
             app:key="flipped_videos"
             app:title="Flipped Videos"
-            app:icon="@mipmap/flipped"
+            app:icon="@drawable/flipped"
             app:defaultValue="false"
             app:summary="Show Flipped videos in the content list."/>
     </PreferenceCategory>
 
     <PreferenceCategory>
         <ListPreference
-            app:icon="@mipmap/video_quality"
+            app:icon="@drawable/video_quality"
             app:title="Flipped Lecture Quality"
             app:summary="Video quality for flipped lectures."
             app:key="video_quality"
@@ -33,7 +33,7 @@
             app:entryValues="@array/video_quality_values" />
 
         <Preference
-            app:icon="@mipmap/folder"
+            app:icon="@drawable/folder"
             app:key="output_path"
             app:title="Output Directory"
             app:summary="Directory to save the videos."/>
@@ -44,13 +44,13 @@
         <SwitchPreferenceCompat
             app:key="debug"
             app:title="Debug"
-            app:icon="@mipmap/debug"
+            app:icon="@drawable/debug"
             app:defaultValue="false"
             app:summary="Debugging Enabled?"/>
 
         <Preference
             app:key="clear_data"
-            app:icon="@mipmap/delete"
+            app:icon="@drawable/delete"
             app:title="Clear Temporary Data"
             app:summary="Clear temporary files"/>
     </PreferenceCategory>
@@ -58,7 +58,7 @@
     <PreferenceCategory>
         <Preference
             app:key="logout"
-            app:icon="@mipmap/logout"
+            app:icon="@drawable/logout"
             app:title="Log out"
             app:summary="Log out "/>
     </PreferenceCategory>
