@@ -141,6 +141,7 @@ public class VideoActivity extends AppCompatActivity {
         @Override
         protected Void doInBackground(Impartus... imps) {
             impartus = imps[0];
+
             lectureItems = impartus.getLectures();
             return null;
         }

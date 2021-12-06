@@ -1,65 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <Preference
+        android:title="Settings"
+        android:icon="@drawable/back"
+        android:key="@string/settings"
+        android:background="@color/transparent"
+        />
 
     <PreferenceCategory>
-        <Preference
-            app:title="Back"
-            app:key="@string/settings"/>
 
         <SwitchPreferenceCompat
-            app:key="regular_videos"
-            app:icon="@drawable/regular"
-            app:title="Regular Videos"
-            app:defaultValue="true"
-            app:summary="Show Regular videos in the content list."/>
+            android:key="regular_videos"
+            android:icon="@drawable/regular"
+            android:title="Regular Videos"
+            android:defaultValue="true"
+            android:summary="Show Regular videos in the content list."/>
 
         <SwitchPreferenceCompat
-            app:key="flipped_videos"
-            app:title="Flipped Videos"
-            app:icon="@drawable/flipped"
-            app:defaultValue="false"
-            app:summary="Show Flipped videos in the content list."/>
+            android:key="flipped_videos"
+            android:title="Flipped Videos"
+            android:icon="@drawable/flipped"
+            android:defaultValue="false"
+            android:summary="Show Flipped videos in the content list."/>
     </PreferenceCategory>
 
     <PreferenceCategory>
         <ListPreference
-            app:icon="@drawable/video_quality"
-            app:title="Flipped Lecture Quality"
-            app:summary="Video quality for flipped lectures."
-            app:key="video_quality"
-            app:defaultValue="highest"
-            app:entries="@array/video_quality_keys"
-            app:entryValues="@array/video_quality_values" />
+            android:icon="@drawable/video_quality"
+            android:title="Flipped Lecture Quality"
+            android:summary="Video quality for flipped lectures."
+            android:key="video_quality"
+            android:defaultValue="highest"
+            android:entries="@array/video_quality_keys"
+            android:entryValues="@array/video_quality_values" />
 
         <Preference
-            app:icon="@drawable/folder"
-            app:key="output_path"
-            app:title="Output Directory"
-            app:summary="Directory to save the videos."/>
+            android:icon="@drawable/folder"
+            android:key="output_path"
+            android:title="Output Directory"
+            android:summary="Directory to save the videos."/>
 
     </PreferenceCategory>
 
     <PreferenceCategory>
         <SwitchPreferenceCompat
-            app:key="debug"
-            app:title="Debug"
-            app:icon="@drawable/debug"
-            app:defaultValue="false"
-            app:summary="Debugging Enabled?"/>
+            android:key="debug"
+            android:title="Debug"
+            android:icon="@drawable/debug"
+            android:defaultValue="false"
+            android:summary="Debugging Enabled?"/>
 
         <Preference
-            app:key="clear_data"
-            app:icon="@drawable/delete"
-            app:title="Clear Temporary Data"
-            app:summary="Clear temporary files"/>
+            android:key="clear_data"
+            android:icon="@drawable/delete"
+            android:title="Clear Temporary Data"
+            android:summary="Clear temporary files"/>
     </PreferenceCategory>
 
     <PreferenceCategory>
         <Preference
-            app:key="logout"
-            app:icon="@drawable/logout"
-            app:title="Log out"
-            app:summary="Log out "/>
+            android:key="logout"
+            android:icon="@mipmap/logout"
+            android:title="Log out"
+            android:summary="Log out "/>
     </PreferenceCategory>
 </PreferenceScreen>

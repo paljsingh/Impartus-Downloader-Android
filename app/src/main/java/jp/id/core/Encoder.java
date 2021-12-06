@@ -155,9 +155,11 @@ public class Encoder {
             Utils.runFfmpeg(commandArgs);
         } catch (Exception ex) {
             Log.e(Encoder.class.getName(), String.format("[%s]: ffmpeg exception: %s", id, ex));
-            StringBuilder fileNames = new StringBuilder(trackFiles.get(0).getName());
+            String filename = trackFiles.get(0) != null ? trackFiles.get(0).getName() : "null";
+            StringBuilder fileNames = new StringBuilder(filename);
             for(int i=1; i<trackFiles.size(); i++) {
-                fileNames.append(", ").append(trackFiles.get(i).getName());
+                filename = trackFiles.get(0) != null ? trackFiles.get(i).getName() : "null";
+                fileNames.append(", ").append(filename);
             }
             Log.e(Encoder.class.getName(), String.format("[%s]: Check the ts file(s) generated at location: %s", id, fileNames));
             return false;

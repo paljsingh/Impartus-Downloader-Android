@@ -108,4 +108,11 @@ public class Utils {
         return prefs.getString("token", null);
     }
 
+    public static void deleteSessionTokenFromPrefs(final Activity activity) {
+        SharedPreferences prefs = activity.getSharedPreferences("session", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.remove("token");
+        editor.apply();
+    }
+
 }
