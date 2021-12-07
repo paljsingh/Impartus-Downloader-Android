@@ -84,8 +84,12 @@ public class VideoActivity extends AppCompatActivity {
     }
 
     private boolean hasStoragePermission() {
-        return (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED);
+        if (Build.VERSION.SDK_INT <= 28) {
+            return (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED);
+        } else {
+            return true;
+        }
     }
 
     private void requestStoragePermission() {
@@ -95,14 +99,11 @@ public class VideoActivity extends AppCompatActivity {
     }
 
     private void persistData(List<LectureItem> items) {
-        Log.d(this.getClass().getName(), "inside set persist data");
-
         SharedPreferences prefs = getSharedPreferences("data", MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         Gson gson = new Gson();
         editor.putString("lectureitems", gson.toJson(items));
         editor.putLong("when", System.currentTimeMillis());
-        Log.d(this.getClass().getName(), String.format("%s/%s", gson.toJson(lectureItems), System.currentTimeMillis()));
         editor.apply();
     }
 
@@ -110,15 +111,12 @@ public class VideoActivity extends AppCompatActivity {
         long threshold = 3600*1000; // millis
 
         lectureItems = new ArrayList<>();
-        Log.d(this.getClass().getName(), "inside get Persisted Data");
         SharedPreferences prefs = getSharedPreferences("data", MODE_PRIVATE);
         String jsonArray = prefs.getString("lectureitems", null);
         long lastPersistEpoch = prefs.getLong("when", 0L);
-        Log.d(this.getClass().getName(), String.format("%s / %s", jsonArray.length(), lastPersistEpoch));
         if (jsonArray != null && (System.currentTimeMillis() - lastPersistEpoch <= threshold) ) {
             Type listType = new TypeToken<ArrayList<LectureItem>>(){}.getType();
             lectureItems = new Gson().fromJson(jsonArray, listType);
-            Log.d(this.getClass().getName(), "return true");
             return true;
         }
         return false;
