@@ -54,8 +54,8 @@ public class SettingsFragment extends PreferenceFragmentCompat {
                             @Override
                             public boolean onPreferenceClick(Preference arg0) {
                                 Intent intent = new Intent(getActivity(), VideoActivity.class);
-                                getActivity().finish();
                                 startActivity(intent);
+                                getActivity().finish();
                                 return true;
                             }
                         });
