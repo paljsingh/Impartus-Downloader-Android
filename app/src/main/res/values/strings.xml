@@ -23,4 +23,5 @@
     <string name="email">Email</string>
     <string name="login">Login</string>
     <string name="username">Username</string>
+    <string name="error_authenticating">Error authenticating with Impartus.</string>
 </resources>
