@@ -6,6 +6,8 @@ import android.os.Bundle;
 import android.os.StrictMode;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import jp.id.R;
 import jp.id.core.Impartus;
@@ -44,6 +46,9 @@ public class LoginActivity extends AppCompatActivity {
         String username = ((EditText) findViewById(R.id.username)).getText().toString();
         String password = ((EditText) findViewById(R.id.password)).getText().toString();
 
+        TextView failedLogin = (TextView) findViewById(R.id.failed_login);
+        failedLogin.setVisibility(TextView.INVISIBLE);
+
         Impartus impartus = new Impartus(baseUrl, this.getCacheDir());
         boolean success = impartus.login(username, password);
         if (success) {
@@ -52,6 +57,9 @@ public class LoginActivity extends AppCompatActivity {
             Utils.saveSharedPrefs(this, baseUrl, sessionToken);
 
             launchVideoActivity();
+        } else {
+            Toast.makeText(view.getContext(), "Error logging to impartus, please check your login credentials.", Toast.LENGTH_LONG).show();
+            failedLogin.setVisibility(TextView.VISIBLE);
         }
     }
 }
