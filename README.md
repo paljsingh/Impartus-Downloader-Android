@@ -1,16 +1,11 @@
 # Impartus Downloader App for Android
 
-## On Google Playstore (v1.2)
+## On Google Playstore
 https://play.google.com/store/apps/details?id=jp.id
 
 
-## v1.3 available for download from:
-https://drive.google.com/drive/folders/1unGt2GDSGQqI1He2b-RYsOEZxiijO2up?usp=sharing
 
-###
-
-
-UI (v1.3)
+UI
 ===
 
 Impartus Downloader for Android - Videos Tab
