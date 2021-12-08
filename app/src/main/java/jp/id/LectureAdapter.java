@@ -171,6 +171,19 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
         return this.lectureItems.size();
     }
 
+    @SuppressLint("NotifyDataSetChanged")
+    public void clear() {
+        lectureItems.clear();
+        notifyDataSetChanged();
+    }
+
+    // Add a list of items -- change to type used
+    @SuppressLint("NotifyDataSetChanged")
+    public void addAll(List<LectureItem> list) {
+        lectureItems.addAll(list);
+        notifyDataSetChanged();
+    }
+
     private class DownloadLecture extends AsyncTask<LectureItem, Integer, Boolean> {
         LectureItem lectureItem;
         Context context;

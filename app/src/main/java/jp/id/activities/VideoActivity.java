@@ -6,6 +6,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.Manifest;
 import android.app.ProgressDialog;
@@ -25,6 +26,7 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import jp.id.LectureAdapter;
 import jp.id.R;
@@ -38,8 +40,9 @@ public class VideoActivity extends AppCompatActivity {
 
     private List<LectureItem> lectureItems;
     private Impartus impartus;
-
+    private SwipeRefreshLayout swipeContainer;
     private static final int REQUEST_WRITE_STORAGE = 112;
+    private long lastRefreshEpoch = 0L;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,7 +58,26 @@ public class VideoActivity extends AppCompatActivity {
         String sessionToken = Utils.getSessionTokenFromPrefs(this);
         impartus = new Impartus(baseUrl, this.getCacheDir(), sessionToken);
 
-        if (! getPersistedData()) {
+        // fetch fresh lecture content when...
+        // 1 - user explicitly asked for fresh data (swipe down) and it was not fetched very recently (say at least 1 mins ago).
+
+        swipeContainer = (SwipeRefreshLayout) findViewById(R.id.swipeContainer);
+        swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                // Your code to refresh the list here.
+                // Make sure you call swipeContainer.setRefreshing(false)
+                // once the network request has completed successfully.
+                if (System.currentTimeMillis() - lastRefreshEpoch > 60*1000) {
+                    getAsyncLectures();
+                    lastRefreshEpoch = System.currentTimeMillis();
+                }
+            }
+        });
+
+        // 2 - when data is not persisted or
+        // 3 - when data is stale (> 1hr)
+        if (! getPersistedData() ) {
             getAsyncLectures();
         } else {
             attachAdapter();
@@ -68,6 +90,7 @@ public class VideoActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         assert toolbar != null;
         setSupportActionBar(toolbar);
+        Objects.requireNonNull(getSupportActionBar()).setDisplayShowTitleEnabled(false);
 
     }
 
@@ -183,6 +206,7 @@ public class VideoActivity extends AppCompatActivity {
             progressbar.hide();
             progressbar.dismiss();
             persistData(lectureItems);
+            swipeContainer.setRefreshing(false);
 
             attachAdapter();
         }
