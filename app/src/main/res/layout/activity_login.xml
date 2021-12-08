@@ -26,7 +26,7 @@
         android:layout_marginBottom="20dp"
         android:layout_centerHorizontal="true"
         android:ems="10"
-        android:hint="@string/username"
+        android:hint="@string/email"
         android:inputType="text"
         android:autofillHints="Email">
 
@@ -46,7 +46,20 @@
         android:autofillHints="Password">
     </EditText>
 
+    <TextView
+        android:id="@+id/failed_login"
+        android:layout_width="300dp"
+        android:layout_height="20dp"
+        android:layout_marginBottom="0dp"
+        android:layout_alignStart="@id/password"
+        android:layout_below="@+id/password"
+        android:text="@string/error_authenticating"
+        android:textColor="#cd2931"
+        android:visibility="invisible"
+        />
+
     <Button
+        android:id="@+id/login_button"
         android:text="@string/login"
         android:layout_width="100dp"
         android:layout_height="48dp"
