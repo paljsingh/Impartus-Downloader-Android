@@ -41,13 +41,23 @@ public class Impartus implements Parcelable {
     private final File downloadDir;
     private OkHttpClient client;
 
-    private String flippedVideoQuality;
+    private String tag = "core.impartus";
 
     public Impartus(final String baseUrl, final File cacheDir) {
         this.baseUrl = baseUrl;
         this.cacheDir = cacheDir;
         this.downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES);
-        client = new OkHttpClient.Builder()
+        this.client = getClient();
+    }
+
+    public Impartus(final String baseUrl, final File cacheDir, final String sessionToken) {
+        this(baseUrl, cacheDir);
+        this.sessionToken = sessionToken;
+        this.client = getClient();
+    }
+
+    private OkHttpClient getClient() {
+        return new OkHttpClient.Builder()
                 .callTimeout(10, TimeUnit.SECONDS)
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
@@ -55,17 +65,8 @@ public class Impartus implements Parcelable {
                 .build();
     }
 
-    public Impartus(final String baseUrl, final File cacheDir, final String sessionToken) {
-        this(baseUrl, cacheDir);
-        this.sessionToken = sessionToken;
-    }
-
     public File getDownloadDir() {
         return downloadDir;
-    }
-
-    public void setFlippedVideoQuality(String videoQuality) {
-        this.flippedVideoQuality = videoQuality;
     }
 
     @Override
@@ -96,6 +97,7 @@ public class Impartus implements Parcelable {
         baseUrl = in.readString();
         cacheDir = new File(in.readString());
         downloadDir = new File(in.readString());
+        client = getClient();
     }
 
 
@@ -118,7 +120,7 @@ public class Impartus implements Parcelable {
         Request request = builder.build();
 
         try {
-            Log.d(this.getClass().getName(), String.format("Sending POST request to %s", url));
+            Log.d(tag, String.format("Sending POST request to %s", url));
             return client.newCall(request).execute();
         } catch (IOException e) {
             e.printStackTrace();
@@ -143,17 +145,17 @@ public class Impartus implements Parcelable {
         int retryCount = 0;
         while(true) {
             try {
-                Log.d(this.getClass().getName(), String.format("Sending GET request to %s", url));
+                Log.d(tag, String.format("Sending GET request to %s", url));
                 return client.newCall(request).execute();
             } catch (UnknownHostException e) {
-                Log.w(this.getClass().getName(), "No internet ?");
+                Log.w(tag, "No internet ?");
                 return null;
             } catch (IOException e) {
                 retryCount++;
                 if (retryCount <= maxRetries) {
-                    Log.d(this.getClass().getName(), String.format("Request to %s timed out, retrying.", url));
+                    Log.d(tag, String.format("Request to %s timed out, retrying.", url));
                 } else {
-                    Log.w(this.getClass().getName(), String.format("Error when sending request to %s, giving up.", url));
+                    Log.w(tag, String.format("Error when sending request to %s, giving up.", url));
                     e.printStackTrace();
                     break;
                 }
@@ -170,22 +172,22 @@ public class Impartus implements Parcelable {
             json.put("username", username);
             json.put("password", password);
         } catch (JSONException e) {
-            Log.w(this.getClass().getName(), "Invalid json format for username/password");
+            Log.w(tag, "Invalid json format for username/password");
         }
 
-        Log.d(this.getClass().getName(), String.format("Authenticating with username %s to %s", username, url));
+        Log.d(tag, String.format("Authenticating with username %s to %s", username, url));
         Response response = sendPostRequest(url, json, false);
 
         try {
             if (response.code() == 200) {
-                Log.d(this.getClass().getName(), "Successfully authenticated with impartus.");
+                Log.d(tag, "Successfully authenticated with impartus.");
                 String body = Objects.requireNonNull(response.body()).string();
                 JSONObject jsonResponse = new JSONObject(body);
                 sessionToken = jsonResponse.get("token").toString();
                 return true;
             } else {
-                Log.e(this.getClass().getName(), "Error authenticating with impartus.");
-                Log.e(this.getClass().getName(), String.format("response body: %s", response.body()));
+                Log.e(tag, "Error authenticating with impartus.");
+                Log.e(tag, String.format("response body: %s", response.body()));
             }
         } catch (IOException | JSONException e) {
             e.printStackTrace();
@@ -246,7 +248,7 @@ public class Impartus implements Parcelable {
 
     public String getUserInfo() throws UnsupportedEncodingException {
         if (!isAuthenticated()) {
-            Log.w(this.getClass().getName(), "getUserInfo called but user not authenticated.");
+            Log.w(tag, "getUserInfo called but user not authenticated.");
             return null;
         }
         int start = sessionToken.indexOf('.') + 1;
@@ -269,7 +271,7 @@ public class Impartus implements Parcelable {
 
             try {
                 if (response.code() == 200) {
-                    Log.d(this.getClass().getName(), String.format("Fetched lectures list for %s.", subjectItem.getName()));
+                    Log.d(tag, String.format("Fetched lectures list for %s.", subjectItem.getName()));
                     String body = Objects.requireNonNull(response.body()).string();
                     JSONArray jsonArray = new JSONArray(body);
 
@@ -298,12 +300,12 @@ public class Impartus implements Parcelable {
                             LectureItem lectureItem = new LectureItem(lectureId, seqNo, topic, professorName, date, tracks, duration, subjectItem.getName(), true, viewIndex);
                             lectures.add(lectureItem);
                             viewIndex++;
-                            Log.d(this.getClass().getName(), String.format("Added Lecture: %s", topic));
+                            Log.d(tag, String.format("Added Lecture: %s", topic));
                         }
                     }
                 } else {
-                    Log.e(this.getClass().getName(), "Error authenticating with impartus.");
-                    Log.e(this.getClass().getName(), String.format("response body: %s", response.body()));
+                    Log.e(tag, "Error authenticating with impartus.");
+                    Log.e(tag, String.format("response body: %s", response.body()));
                 }
             } catch (IOException | JSONException e) {
                 e.printStackTrace();
@@ -325,7 +327,7 @@ public class Impartus implements Parcelable {
 
             try {
                 if (response.code() == 200) {
-                    Log.d(this.getClass().getName(), String.format("Fetched lectures list for %s.", subjectItem.getName()));
+                    Log.d(tag, String.format("Fetched lectures list for %s.", subjectItem.getName()));
                     String body = Objects.requireNonNull(response.body()).string();
                     JSONArray jsonArray = new JSONArray(body);
 
@@ -345,16 +347,15 @@ public class Impartus implements Parcelable {
                         LectureItem lectureItem = new LectureItem(lectureId, seqNo, topic, professorName, date, tracks, duration, subjectItem.getName(), false, viewIndex);
                         lectures.add(lectureItem);
                         viewIndex++;
-                        Log.d(this.getClass().getName(), String.format("Added Lecture: %s", topic));
+                        Log.d(tag, String.format("Added Lecture: %s", topic));
                     }
                 } else {
-                    Log.e(this.getClass().getName(), "Error authenticating with impartus.");
-                    Log.e(this.getClass().getName(), String.format("response body: %s", response.body()));
+                    Log.e(tag, "Error authenticating with impartus.");
+                    Log.e(tag, String.format("response body: %s", response.body()));
                 }
             } catch (IOException | JSONException e) {
                 e.printStackTrace();
             }
-
         }
         return lectures;
     }
@@ -379,8 +380,8 @@ public class Impartus implements Parcelable {
                     subjects.add(subjectItem);
                 }
             } else {
-                Log.e(this.getClass().getName(), "Error authenticating with impartus.");
-                Log.e(this.getClass().getName(), String.format("response body: %s", response.body()));
+                Log.e(tag, "Error authenticating with impartus.");
+                Log.e(tag, String.format("response body: %s", response.body()));
             }
         } catch (IOException | JSONException e) {
             e.printStackTrace();
@@ -414,24 +415,31 @@ public class Impartus implements Parcelable {
             int itemsProcessed = 0;
             File tempDir = Utils.getTempCacheDir(cacheDir, item.getId());
             if (tempDir == null) {
+                item.appendLog("ERROR: cannot get cache dir.");
                 return false;
             }
+
+            item.appendLog("INFO: Started download");
+
             for (Track track : tracks) {
 
                 List<File> tsFiles = new ArrayList<>();
+
                 for (VideoStream stream : track.getStreams()) {
 
                     // download encrypted stream..
-                    File encStreamFilepath = writeStreamToFile(stream, tempDir);
+                    File encStreamFilepath = writeStreamToFile(stream, tempDir, item);
                     filesToDelete.add(encStreamFilepath);
 
                     // decrypt stream file if encrypted.
                     if (stream.getEncryptionMethod().equals("NONE")) {
-                        Log.d(this.getClass().getName(), String.format("file %s not encrypted", encStreamFilepath));
+                        String message = String.format("file %s not encrypted", encStreamFilepath);
+                        Log.d(tag, message);
                         tsFiles.add(encStreamFilepath);
                     } else {
-                        File decryptedStreamFilepath = decryptStreamFile(stream, encStreamFilepath, encryptionKeys, tempDir);
-                        Log.d(this.getClass().getName(), String.format("file %s -> %s decrypted", encStreamFilepath, decryptedStreamFilepath));
+                        File decryptedStreamFilepath = decryptStreamFile(stream, encStreamFilepath, encryptionKeys, tempDir, item);
+                        String message = String.format("file %s -> %s decrypted", encStreamFilepath, decryptedStreamFilepath);
+                        Log.d(tag, message);
 
                         tsFiles.add(decryptedStreamFilepath);
                         filesToDelete.add(decryptedStreamFilepath);
@@ -444,13 +452,20 @@ public class Impartus implements Parcelable {
 
                     // update progress bar here...
                     int itemsProcessedPercent = itemsProcessed * 100 / mediaFilesCount;
-                    item.setDownloadPercent(itemsProcessedPercent);
-                    task.call(itemsProcessedPercent);
+
+                    // update ui only when necessary
+                    if (itemsProcessedPercent > item.getDownloadPercent()) {
+                        item.setDownloadPercent(itemsProcessedPercent);
+                        task.call(itemsProcessedPercent);
+                    }
                 }   // for each videoStream
 
                 // All stream files for this track are decrypted, join them.
-                Log.i(this.getClass().getName(), String.format("[%s]: Joining streams for track %s ..", item.getId(), track.getNumber()));
-                File trackFile = Encoder.join(tsFiles, tempDir.getAbsolutePath(), track.getNumber());
+                String message = String.format("[%s]: Joining streams for track %s ..", item.getId(), track.getNumber());
+                Log.i(tag, message);
+                item.appendLog(String.format("INFO: %s", message));
+
+                File trackFile = Encoder.join(tsFiles, tempDir.getAbsolutePath(), track.getNumber(), item);
                 trackFiles.add(trackFile);
                 filesToDelete.add(trackFile);
             }   // for track in tracks
@@ -460,17 +475,23 @@ public class Impartus implements Parcelable {
             if (mkvDirPath != null && ! mkvDirPath.exists()) {
                 boolean flag = mkvDirPath.mkdir();
                 if (!flag) {
-                    Log.e(this.getClass().getName(), String.format("Error creating directory %s", mkvDirPath));
+                    String message = String.format("Error creating directory %s", mkvDirPath);
+                    Log.e(tag, message);
+                    item.appendLog(String.format("ERROR: %s", message));
                     return false;
                 }
             }
 
             // encode mkv.
-            boolean encodeSuccess = Encoder.encodeMkv(item.getId(), trackFiles, mkvFilePath.getAbsolutePath(), item.getDuration(), item.isFlipped(), debug);
+            boolean encodeSuccess = Encoder.encodeMkv(item, trackFiles, mkvFilePath.getAbsolutePath(), debug);
 
             if (encodeSuccess) {
                 item.setOfflinePath(mkvFilePath);
-                Log.i(this.getClass().getName(), String.format("[%s]: Processed %s\n---", item.getId(), mkvFilePath));
+                String message = String.format("[%s]: Processed %s\n---", item.getId(), mkvFilePath);
+                Log.i(tag, message);
+                item.appendLog(String.format("INFO: %s", message));
+            } else {
+                item.appendLog("ERROR: processing video.");
             }
 
             // delete temp files.
@@ -478,7 +499,9 @@ public class Impartus implements Parcelable {
                 for (File file : filesToDelete) {
                     boolean deleteSuccess = file.delete();
                     if (!deleteSuccess) {
-                        Log.e(this.getClass().getName(), String.format("Error deleting file %s", file.getAbsolutePath()));
+                        String message = String.format("Error deleting file %s", file.getAbsolutePath());
+                        Log.e(tag, message);
+                        item.appendLog(String.format("ERROR: %s", message));
                         return false;
                     }
                 }
@@ -491,7 +514,8 @@ public class Impartus implements Parcelable {
             final VideoStream stream,
             final File encStreamFilepath,
             final Map<Integer, byte[]> encryptionKeys,
-            final File tempDir) {
+            final File tempDir,
+            final LectureItem item) {
 
         byte[] key;
         if (encryptionKeys.get(stream.getKeyId()) == null) {
@@ -507,6 +531,7 @@ public class Impartus implements Parcelable {
                 encryptionKeys.put(stream.getKeyId(), key);
 
             } catch (IOException e) {
+                item.appendLog(String.format("Exception while decrypting stream: %s", e.getMessage()));
                 e.printStackTrace();
             }
         }
@@ -521,7 +546,7 @@ public class Impartus implements Parcelable {
         return decryptedStreamFilepath;
     }
 
-    private File writeStreamToFile(final VideoStream stream, final File tempDir) {
+    private File writeStreamToFile(final VideoStream stream, final File tempDir, final LectureItem item) {
         File encStreamFilepath = new File(String.format("%s/%s", tempDir, stream.getFileNumber()));
 
         boolean downloadFlag = false;
@@ -533,6 +558,7 @@ public class Impartus implements Parcelable {
 
                 downloadFlag = true;
             } catch (IOException e) {
+                item.appendLog(String.format("Exception while writing stream to file: %s", e.getMessage()));
                 e.printStackTrace();
             }
         }
@@ -596,4 +622,5 @@ public class Impartus implements Parcelable {
         }
         return new String[0];
     }
+
 }

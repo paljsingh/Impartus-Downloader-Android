@@ -31,10 +31,12 @@
                 android:id="@+id/topic"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingStart="4dp"
+                android:paddingStart="2dp"
+                android:paddingEnd="2dp"
                 android:paddingTop="0dp"
-                android:minEms="10"
-                android:maxEms="12"
+                android:paddingBottom="0dp"
+                android:minEms="12"
+                android:maxEms="16"
                 android:text="@string/topic"
                 android:textSize="16sp"
                 android:textStyle="bold"
@@ -142,7 +144,7 @@
 
             <TextView
                 android:id="@+id/date"
-                android:layout_width="120dp"
+                android:layout_width="140dp"
                 android:layout_height="wrap_content"
                 android:minHeight="24dp"
                 android:layout_margin="2dp"
@@ -152,7 +154,7 @@
 
             <TextView
                 android:id="@+id/duration"
-                android:layout_width="120dp"
+                android:layout_width="140dp"
                 android:layout_height="wrap_content"
                 android:minHeight="24dp"
                 android:layout_margin="2dp"
@@ -162,7 +164,7 @@
 
             <TextView
                 android:id="@+id/tracks"
-                android:layout_width="120dp"
+                android:layout_width="140dp"
                 android:layout_height="wrap_content"
                 android:minHeight="24dp"
                 android:layout_margin="2dp"
@@ -172,7 +174,7 @@
 
             <TextView
                 android:id="@+id/flipped"
-                android:layout_width="120dp"
+                android:layout_width="140dp"
                 android:layout_height="wrap_content"
                 android:minHeight="24dp"
                 android:layout_margin="2dp"

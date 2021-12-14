@@ -26,11 +26,6 @@ public class Utils {
         FFmpegSession session = FFmpegKit.execute(argsArray);
 
     }
-    public static void runFfmpegAsync(List<String> args, ExecuteCallback callback) {
-        String[] argsArray = args.toArray(new String[0]);
-        FFmpegSession session = FFmpegKit.executeAsync(argsArray, callback);
-
-    }
 
     public static String sanitize(String str) {
         return RegExUtils.replaceAll(str, "[^0-9a-zA-Z_\\.-]", "");
@@ -89,37 +84,45 @@ public class Utils {
         return null;
     }
 
-    public static void saveSharedPrefs(final Activity activity, final String baseUrl, final String token) {
+    public static String getDataKey(final Activity activity, final String key, final String defaultValue) {
+        return activity.getSharedPreferences("data", Context.MODE_PRIVATE).getString(key, defaultValue);
+    }
+
+    public static void saveDataKey(final Activity activity, final String key, final String value) {
+        SharedPreferences prefs = activity.getSharedPreferences("data", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString(key, value);
+        editor.apply();
+    }
+
+    public static void saveDataKey(final Context context, final String key, final String value) {
+        SharedPreferences prefs = context.getSharedPreferences("data", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString(key, value);
+        editor.apply();
+    }
+
+
+    /* session prefs */
+    public static String getUrlFromPrefs(final Activity activity) {
+        return Utils.getSessionKey(activity, "url");
+    }
+
+    public static String getSessionTokenFromPrefs(final Activity activity) {
+        return Utils.getSessionKey(activity, "token");
+    }
+
+    public static String getSessionKey(final Activity activity, final String key) {
+        SharedPreferences prefs = activity.getSharedPreferences("session", Context.MODE_PRIVATE);
+        return prefs.getString(key, null);
+    }
+
+    public static void saveSession(final Activity activity, final String baseUrl, final String token) {
         SharedPreferences prefs = activity.getSharedPreferences("session", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString("url", baseUrl);
         editor.putString("token", token);
         editor.apply();
-    }
-
-    public static String getKeyFromPrefs(final Activity activity, final String key, final String defaultValue) {
-        return activity.getSharedPreferences("jp.id_preferences", Context.MODE_PRIVATE).getString(key, defaultValue);
-    }
-    public static boolean getKeyFromPrefs(final Activity activity, final String key, final boolean defaultValue) {
-        return activity.getSharedPreferences("jp.id_preferences", Context.MODE_PRIVATE).getBoolean(key, defaultValue);
-    }
-
-    public static String getKeyFromPrefs(final Context context, final String key, final String defaultValue) {
-        return PreferenceManager.getDefaultSharedPreferences(context).getString(key, defaultValue);
-    }
-
-    public static boolean getKeyFromPrefs(final Context context, final String key, final boolean defaultValue) {
-        return PreferenceManager.getDefaultSharedPreferences(context).getBoolean(key, defaultValue);
-    }
-
-    public static String getUrlFromPrefs(final Activity activity) {
-        SharedPreferences prefs = activity.getSharedPreferences("session", Context.MODE_PRIVATE);
-        return prefs.getString("url", null);
-    }
-
-    public static String getSessionTokenFromPrefs(final Activity activity) {
-        SharedPreferences prefs = activity.getSharedPreferences("session", Context.MODE_PRIVATE);
-        return prefs.getString("token", null);
     }
 
     public static void deleteSessionTokenFromPrefs(final Activity activity) {
@@ -129,6 +132,21 @@ public class Utils {
         editor.apply();
     }
 
+    /* settings/prefs */
+    public static void savePrefsKey(final Context context, final String key, final String value) {
+        SharedPreferences prefs = context.getSharedPreferences("jp.id_preferences", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString(key, value);
+        editor.apply();
+    }
+
+    public static String getPrefsKey(final Context context, final String key, final String defaultValue) {
+        return PreferenceManager.getDefaultSharedPreferences(context).getString(key, defaultValue);
+    }
+
+    public static boolean getPrefsKey(final Context context, final String key, final boolean defaultValue) {
+        return PreferenceManager.getDefaultSharedPreferences(context).getBoolean(key, defaultValue);
+    }
 
 
 }

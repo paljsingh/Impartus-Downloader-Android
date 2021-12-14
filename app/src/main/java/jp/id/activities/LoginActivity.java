@@ -54,7 +54,7 @@ public class LoginActivity extends AppCompatActivity {
         if (success) {
             // save session token, and launch video activity.
             String sessionToken = impartus.getSessionToken();
-            Utils.saveSharedPrefs(this, baseUrl, sessionToken);
+            Utils.saveSession(this, baseUrl, sessionToken);
 
             launchVideoActivity();
         } else {

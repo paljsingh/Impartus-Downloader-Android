@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import jp.id.model.LectureItem;
+
 public class Encoder {
 
     public static ExecuteCallback defaultCallback = new ExecuteCallback() {
@@ -24,13 +26,14 @@ public class Encoder {
         }
     };
 
-    public static File join(List<File> files, String dir, int trackNumber) {
+    public static File join(List<File> files, String dir, int trackNumber, final LectureItem item) {
         File outFilePath = new File(String.format("%s/track-%s.ts", dir, trackNumber));
         for(File file: files) {
             try {
                 byte[] bytes = FileUtils.readFileToByteArray(file);
                 FileUtils.writeByteArrayToFile(outFilePath, bytes, true);
             } catch (IOException e) {
+                item.appendLog(String.format("Exception while joining streams: %s", e.getMessage()));
                 e.printStackTrace();
                 return null;
             }
@@ -38,7 +41,7 @@ public class Encoder {
         return outFilePath;
     }
 
-    public static boolean splitTrack(final List<File> trackFiles, final int duration, final boolean debug) {
+    public static boolean splitTrack(final List<File> trackFiles, final int duration, final boolean debug, final LectureItem item) {
         String logLevel = "quiet";
         if (debug) {
             logLevel = "verbose";
@@ -84,7 +87,7 @@ public class Encoder {
         return new File(tmpFilePath).renameTo(trackFiles.get(0).getAbsoluteFile());
     }
 
-    public static boolean encodeMkv(final int id, final List<File> trackFiles, final String mkvFilePath, final int duration, final boolean flipped, final boolean debug) {
+    public static boolean encodeMkv(final LectureItem item, final List<File> trackFiles, final String mkvFilePath, final boolean debug) {
         // probe size is needed to lookup timestamp info in files where multiple tracks are
         // joined in a single channel and possibly with incorrect timestamps.
         String probeSize = "2147483647";
@@ -122,15 +125,16 @@ public class Encoder {
             }
 
             if (splitFlag) {
-                Log.d(Encoder.class.getName(), String.format("[%s]: Splitting track 0 .. ", id));
-                boolean splitSuccess = Encoder.splitTrack(trackFiles, duration, debug);
+                Log.d(Encoder.class.getName(), String.format("[%s]: Splitting track 0 .. ", item.getId()));
+                boolean splitSuccess = Encoder.splitTrack(trackFiles, item.getDuration(), debug, item);
                 if (! splitSuccess) {
                     Log.e(Encoder.class.getName(), "Error splitting track 0");
+                    item.appendLog("ERROR splitting track 0.");
                     return false;
                 }
             }
 
-            Log.i(Encoder.class.getName(), String.format("[%s]: Encoding output file ..", id));
+            Log.i(Encoder.class.getName(), String.format("[%s]: Encoding output file ..", item.getId()));
             List<String> commandArgs = new ArrayList<>();
             commandArgs.add("-y");
             commandArgs.add("-loglevel");
@@ -138,12 +142,12 @@ public class Encoder {
             commandArgs.addAll(inputArgs);
 
             // adding id to metadata.
-            if (flipped) {
+            if (item.isFlipped()) {
                 commandArgs.add("-metadata");
-                commandArgs.add(String.format("fcid=%s", id));
+                commandArgs.add(String.format("fcid=%s", item.getId()));
             } else {
                 commandArgs.add("-metadata");
-                commandArgs.add(String.format("ttid=%s", id));
+                commandArgs.add(String.format("ttid=%s", item.getId()));
             }
 
             commandArgs.add("-c");
@@ -154,14 +158,16 @@ public class Encoder {
 
             Utils.runFfmpeg(commandArgs);
         } catch (Exception ex) {
-            Log.e(Encoder.class.getName(), String.format("[%s]: ffmpeg exception: %s", id, ex));
+            Log.e(Encoder.class.getName(), String.format("[%s]: ffmpeg exception: %s", item.getId(), ex));
+            item.appendLog(String.format("[%s]: ffmpeg exception: %s", item.getId(), ex));
+
             String filename = trackFiles.get(0) != null ? trackFiles.get(0).getName() : "null";
             StringBuilder fileNames = new StringBuilder(filename);
             for(int i=1; i<trackFiles.size(); i++) {
                 filename = trackFiles.get(0) != null ? trackFiles.get(i).getName() : "null";
                 fileNames.append(", ").append(filename);
             }
-            Log.e(Encoder.class.getName(), String.format("[%s]: Check the ts file(s) generated at location: %s", id, fileNames));
+            Log.e(Encoder.class.getName(), String.format("[%s]: Check the ts file(s) generated at location: %s", item.getId(), fileNames));
             return false;
         }
         return true;

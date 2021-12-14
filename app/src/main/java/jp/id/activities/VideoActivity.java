@@ -9,12 +9,14 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.os.StrictMode;
 import android.util.Log;
 import android.view.View;
@@ -27,22 +29,23 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
 import jp.id.LectureAdapter;
 import jp.id.R;
 import jp.id.SettingsFragment;
 import jp.id.core.Impartus;
 import jp.id.core.Utils;
 import jp.id.model.LectureItem;
+import jp.id.model.Lectures;
 import jp.id.model.SubjectItem;
 
 public class VideoActivity extends AppCompatActivity {
 
-    private List<LectureItem> lectureItems;
     private Impartus impartus;
     private SwipeRefreshLayout swipeContainer;
     private static final int REQUEST_WRITE_STORAGE = 112;
-    private long lastRefreshEpoch = 0L;
+    private static Bundle mBundleRecyclerViewState;
+    private RecyclerView mRecyclerView;
+    private final String KEY_RECYCLER_STATE = "recycler_state";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,35 +56,20 @@ public class VideoActivity extends AppCompatActivity {
             StrictMode.setThreadPolicy(policy);
         }
         setContentView(R.layout.activity_video);
+        mRecyclerView = (RecyclerView) findViewById(R.id.recyclerView);//set to whatever view id you use
 
         String baseUrl = Utils.getUrlFromPrefs(this);
         String sessionToken = Utils.getSessionTokenFromPrefs(this);
         impartus = new Impartus(baseUrl, this.getCacheDir(), sessionToken);
 
-        // fetch fresh lecture content when...
-        // 1 - user explicitly asked for fresh data (swipe down) and it was not fetched very recently (say at least 1 mins ago).
-
-        swipeContainer = (SwipeRefreshLayout) findViewById(R.id.swipeContainer);
-        swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                // Your code to refresh the list here.
-                // Make sure you call swipeContainer.setRefreshing(false)
-                // once the network request has completed successfully.
-                if (System.currentTimeMillis() - lastRefreshEpoch > 60*1000) {
-                    getAsyncLectures();
-                    lastRefreshEpoch = System.currentTimeMillis();
-                }
-            }
+        swipeContainer = findViewById(R.id.swipeContainer);
+        swipeContainer.setOnRefreshListener(() -> {
+            fetchAsyncLecturesIfNeeded(true);
         });
 
-        // 2 - when data is not persisted or
-        // 3 - when data is stale (> 1hr)
-        if (! getPersistedData() ) {
-            getAsyncLectures();
-        } else {
-            attachAdapter();
-        }
+
+        fetchAsyncLecturesIfNeeded(false);
+        attachAdapter();
 
         if (!hasStoragePermission()) {
             requestStoragePermission();
@@ -91,7 +79,16 @@ public class VideoActivity extends AppCompatActivity {
         assert toolbar != null;
         setSupportActionBar(toolbar);
         Objects.requireNonNull(getSupportActionBar()).setDisplayShowTitleEnabled(false);
+    }
 
+    private void fetchAsyncLecturesIfNeeded(final boolean forceRefresh) {
+        if (shouldFetchNewData(forceRefresh)) {
+            getAsyncLectures();
+        } else {
+            String jsonArray = Utils.getDataKey(this, "lectureitems", "[]");
+            Type listType = new TypeToken<ArrayList<LectureItem>>() {}.getType();
+            Lectures.lectureItems = new Gson().fromJson(jsonArray, listType);
+        }
     }
 
     @Override
@@ -126,34 +123,48 @@ public class VideoActivity extends AppCompatActivity {
         SharedPreferences.Editor editor = prefs.edit();
         Gson gson = new Gson();
         editor.putString("lectureitems", gson.toJson(items));
-        editor.putLong("when", System.currentTimeMillis());
         editor.apply();
     }
 
-    private boolean getPersistedData() {
-        long threshold = 3600*1000; // millis
+    // fetch fresh lecture content when...
+    // 1 - when data is not persisted or
+    // 2 - when data is stale (> 1hr)
+    // 2 - user explicitly asked for fresh data (swipe down)
+    // except -
+    // a) when it was not fetched very recently (say at least 1 mins ago)
+    // b) there is no download going on...
+    private boolean shouldFetchNewData(final boolean forceRefresh) {
+        long staleThreshold = 3600*1000; // millis
+        long minRefreshThreshold = 60*1000; // millis
 
-        lectureItems = new ArrayList<>();
         SharedPreferences prefs = getSharedPreferences("data", MODE_PRIVATE);
         String jsonArray = prefs.getString("lectureitems", null);
-        long lastPersistEpoch = prefs.getLong("when", 0L);
-        if (jsonArray != null && (System.currentTimeMillis() - lastPersistEpoch <= threshold) ) {
-            Type listType = new TypeToken<ArrayList<LectureItem>>(){}.getType();
-            lectureItems = new Gson().fromJson(jsonArray, listType);
-            return true;
+
+        long lastPersistEpoch = Long.parseLong(Utils.getDataKey(this,"lastPersistEpoch","0"));
+        long lastRefreshEpoch = Long.parseLong(Utils.getDataKey(this,"lastRefreshEpoch","0"));
+        boolean downloadsInProgress = Long.parseLong(Utils.getDataKey(this, "numDownloads", "0")) > 0;
+
+        boolean dataPersisted = jsonArray != null;
+        boolean dataIsStale = System.currentTimeMillis() - lastPersistEpoch <= staleThreshold;
+        boolean refreshedVeryRecently = System.currentTimeMillis() - lastRefreshEpoch <= minRefreshThreshold;
+
+        if (! downloadsInProgress && ! refreshedVeryRecently) {
+            return forceRefresh || !dataPersisted || dataIsStale;
         }
         return false;
     }
 
     private void getAsyncLectures() {
+        Utils.savePrefsKey(this, "lastRefreshEpoch", String.valueOf(System.currentTimeMillis()));
         PopulateLectures asyncTask = new PopulateLectures();
         asyncTask.execute();
+        Utils.savePrefsKey(this, "lastPersistEpoch", String.valueOf(System.currentTimeMillis()));
     }
 
     protected void attachAdapter() {
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(VideoActivity.this));
-        LectureAdapter lectureAdapter = new LectureAdapter(lectureItems, impartus);
+        LectureAdapter lectureAdapter = new LectureAdapter(this, recyclerView, impartus);
         recyclerView.setAdapter(lectureAdapter);
     }
 
@@ -161,12 +172,14 @@ public class VideoActivity extends AppCompatActivity {
         SettingsFragment settingsFragment = new SettingsFragment();
         setContentView(R.layout.settings);
 
-        getSupportFragmentManager().beginTransaction().add(R.id.settings, settingsFragment).commit();
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.settings, settingsFragment)
+                .commit();
     }
 
+    @SuppressLint("StaticFieldLeak")
     private class PopulateLectures extends AsyncTask<Void, Void, Void> {
         private final ProgressDialog progressbar = new ProgressDialog(VideoActivity.this);
-        private List<LectureItem> lectureItems;
 
 
         @Override
@@ -183,17 +196,17 @@ public class VideoActivity extends AppCompatActivity {
         protected Void doInBackground(Void... aVoid) {
             final List<SubjectItem> subjects = impartus.getSubjects();
 
-            lectureItems = new ArrayList<>();
-            boolean fetchRegular = Utils.getKeyFromPrefs(VideoActivity.this, "regular_videos", true);
+            Lectures.lectureItems = new ArrayList<>();
+            boolean fetchRegular = Utils.getPrefsKey(VideoActivity.this, "regular_videos", true);
             if (fetchRegular) {
                 Log.d(this.getClass().getName(), "fetching regular lectures");
-                lectureItems.addAll(impartus.getLectures(subjects));
+                Lectures.lectureItems.addAll(impartus.getLectures(subjects));
             }
 
-            boolean fetchFlipped = Utils.getKeyFromPrefs(VideoActivity.this, "flipped_videos", false);
+            boolean fetchFlipped = Utils.getPrefsKey(VideoActivity.this, "flipped_videos", false);
             if (fetchFlipped) {
                 Log.d(this.getClass().getName(), "fetching flipped lectures");
-                lectureItems.addAll(impartus.getFlippedLectures(subjects));
+                Lectures.lectureItems.addAll(impartus.getFlippedLectures(subjects));
             }
 
             return null;
@@ -202,14 +215,31 @@ public class VideoActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
-            VideoActivity.this.lectureItems = lectureItems;
             progressbar.hide();
             progressbar.dismiss();
-            persistData(lectureItems);
+            persistData(Lectures.lectureItems);
             swipeContainer.setRefreshing(false);
 
             attachAdapter();
         }
     }
 
+    @Override
+    protected void onSaveInstanceState(Bundle state)
+    {
+        super.onSaveInstanceState(state);
+        Parcelable mRecylclerState = mRecyclerView.getLayoutManager().onSaveInstanceState();
+        state.putParcelable(KEY_RECYCLER_STATE, mRecylclerState);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle state)
+    {
+        super.onRestoreInstanceState(state);
+
+        // restore RecyclerView state
+        if (state != null) {
+            mBundleRecyclerViewState = state.getParcelable(KEY_RECYCLER_STATE);
+        }
+    }
 }

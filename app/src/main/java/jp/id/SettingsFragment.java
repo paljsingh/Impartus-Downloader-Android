@@ -1,11 +1,11 @@
 package jp.id;
 
-import android.app.ActionBar;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.fragment.app.FragmentManager;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 
@@ -53,13 +53,26 @@ public class SettingsFragment extends PreferenceFragmentCompat {
                         new Preference.OnPreferenceClickListener() {
                             @Override
                             public boolean onPreferenceClick(Preference arg0) {
-                                Intent intent = new Intent(getActivity(), VideoActivity.class);
-                                startActivity(intent);
+//                                onBackPressed();
+                                Intent intent = new Intent(getContext(), VideoActivity.class);
                                 getActivity().finish();
+                                startActivity(intent);
                                 return true;
                             }
                         });
             }
+        }
+    }
+
+    private void onBackPressed() {
+        FragmentManager mFragmentManager = getActivity().getSupportFragmentManager();
+        int fragments = mFragmentManager.getBackStackEntryCount();
+        if (fragments == 1) {
+            getActivity().finish();
+        } else if (getFragmentManager().getBackStackEntryCount() > 1) {
+            getFragmentManager().popBackStack();
+        } else {
+            getActivity().onBackPressed();
         }
     }
 
@@ -84,7 +97,7 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         File cacheDir = this.requireContext().getCacheDir();
         if (cacheDir != null && cacheDir.isDirectory()) {
             for(File f: Objects.requireNonNull(cacheDir.listFiles()))
-            deleteDir(f);
+                deleteDir(f);
         }
 
         Toast.makeText(this.getContext(), "Cache deleted!", Toast.LENGTH_SHORT).show();
@@ -106,4 +119,3 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         return dir.delete();
     }
 }
-

@@ -4,6 +4,8 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class LectureItem implements Parcelable {
@@ -21,6 +23,7 @@ public class LectureItem implements Parcelable {
     private File offlinePath;
     private boolean downloading;
     private final int viewPosition;
+    private List<String> logs;
 
     public void setDownloading(boolean downloading) {
         this.downloading = downloading;
@@ -32,6 +35,14 @@ public class LectureItem implements Parcelable {
 
     public int getViewPosition() {
         return viewPosition;
+    }
+
+    public List<String> getLogs() {
+        return logs;
+    }
+
+    public void appendLog(final String log) {
+        this.logs.add(log);
     }
 
     public LectureItem(int id, int seqNo, String topic, String professorName, String date, int numTracks, int duration, String subjectName, boolean flipped, int viewPosition) {
@@ -51,6 +62,8 @@ public class LectureItem implements Parcelable {
         this.offlinePath = null;
         this.downloading = false;
         this.viewPosition = viewPosition;
+
+        this.logs = new ArrayList<>();
     }
 
     public int getId() {
@@ -142,6 +155,9 @@ public class LectureItem implements Parcelable {
         } else {
             dest.writeString("null");
         }
+
+        dest.writeStringList(logs);
+
     }
 
     public static final Parcelable.Creator<LectureItem> CREATOR = new Parcelable.Creator<LectureItem>() {
@@ -175,6 +191,8 @@ public class LectureItem implements Parcelable {
         } else {
             offlinePath = new File(offlinePathStr);
         }
-    }
 
+        logs = new ArrayList<>();
+        in.readStringList(logs);
+    }
 }

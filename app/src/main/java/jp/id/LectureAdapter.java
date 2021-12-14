@@ -3,9 +3,12 @@ package jp.id;
 import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.AsyncTask;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.ResultReceiver;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -17,30 +20,35 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.RecyclerView;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.WordUtils;
 
 import java.io.File;
 import java.util.List;
 
-import jp.id.activities.VideoActivity;
-import jp.id.command.Callable;
 import jp.id.core.Impartus;
 import jp.id.core.Utils;
 import jp.id.model.LectureItem;
+import jp.id.model.Lectures;
+import jp.id.service.DownloadService;
 
 public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHolder> {
 
     final int DOWNLOAD_VIDEO = 0;
     final int PLAY_VIDEO = 1;
+    final int SHOW_LOGS = 2;
 
-    private final List<LectureItem> lectureItems;
     private final Impartus impartus;
+    private final Context context;
     private int downloadCounter = 0;
+    private Handler handler = null;
 
-    public LectureAdapter (List<LectureItem> lectureItems, Impartus impartus){
-        this.lectureItems = lectureItems;
+    public LectureAdapter (Context context, View recyclerView, Impartus impartus){
         this.impartus = impartus;
+        this.context = context;
     }
 
     @NonNull
@@ -56,25 +64,36 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
         }
     }
 
-    @SuppressLint("DefaultLocale")
-    @Override
-    public void onBindViewHolder(@NonNull LectureAdapter.ViewHolder holder, @SuppressLint("RecyclerView") int position) {
-        LectureItem lectureItem = lectureItems.get(position);
+
+    private void setProgressBarVisibility(ViewHolder holder, final int visibility) {
+        holder.progressBar.setVisibility(visibility);
+        holder.progressBarText.setVisibility(visibility);
+    }
+
+    private void updateProgressBar(ViewHolder holder, int value) {
+        holder.progressBar.setProgress(value);
+        holder.progressBarText.setText(String.format("%s%%", value));
+    }
+
+    private void setProgressBarState(final LectureItem lectureItem, ViewHolder holder) {
         File mkvFilePath = Utils.getMkvFilePath(lectureItem, impartus.getDownloadDir());
         if (mkvFilePath.exists()) {
             lectureItem.setDownloadPercent(100);
             lectureItem.setOfflinePath(mkvFilePath);
-            holder.progressBar.setVisibility(View.VISIBLE);
-            holder.progressBarText.setVisibility(View.VISIBLE);
+            this.setProgressBarVisibility(holder, View.VISIBLE);
         } else if (lectureItem.isDownloading()) {
-            holder.progressBar.setVisibility(View.VISIBLE);
-            holder.progressBarText.setVisibility(View.VISIBLE);
+            this.setProgressBarVisibility(holder, View.VISIBLE);
         } else {
-            holder.progressBar.setVisibility(View.INVISIBLE);
-            holder.progressBarText.setVisibility(View.INVISIBLE);
+            this.setProgressBarVisibility(holder, View.INVISIBLE);
         }
-        holder.progressBar.setProgress(lectureItem.getDownloadPercent());
-        holder.progressBarText.setText(String.format("%s%%", lectureItem.getDownloadPercent()));
+        this.updateProgressBar(holder, lectureItem.getDownloadPercent());
+    }
+
+    @SuppressLint("DefaultLocale")
+    @Override
+    public void onBindViewHolder(@NonNull LectureAdapter.ViewHolder holder, @SuppressLint("RecyclerView") int position) {
+        LectureItem lectureItem = Lectures.lectureItems.get(position);
+        this.setProgressBarState(lectureItem, holder);
 
         holder.topic.setText(
                 String.format("[%02d] %s", lectureItem.getSeqNo(), WordUtils.capitalizeFully(lectureItem.getTopic())));
@@ -117,6 +136,13 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
                     popup.getMenu().getItem(PLAY_VIDEO).setEnabled(false);
                 }
 
+                // enable show logs if file is being downloaded or has been downloaded.
+                if (lectureItem.isDownloading() || lectureItem.getLogs().size() > 0) {
+                    popup.getMenu().getItem(SHOW_LOGS).setEnabled(true);
+                } else {
+                    popup.getMenu().getItem(SHOW_LOGS).setEnabled(false);
+                }
+
                 //adding click listener
                 popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                     @Override
@@ -124,6 +150,8 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
                         if (menuItem.getItemId() == R.id.download_video ) {
                             menuItem.setEnabled(false);
                             downloadCounter++;
+                            Utils.saveDataKey(view.getContext(), "numDownloads", String.valueOf(downloadCounter));
+
                             if (downloadCounter > 1) {
                                 Toast.makeText(view.getContext(), "Download Queued!", Toast.LENGTH_SHORT).show();
                             } else {
@@ -131,13 +159,11 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
                             }
 
                             lectureItem.setDownloading(true);
-                            holder.progressBar.setVisibility(View.VISIBLE);
-                            holder.progressBarText.setVisibility(View.VISIBLE);
-                            holder.progressBar.setProgress(0);
-                            holder.progressBarText.setText(String.format("%s%%", lectureItem.getDownloadPercent()));
+                            lectureItem.setDownloadPercent(0);
 
-                            LectureAdapter.DownloadLecture asyncTask = new LectureAdapter.DownloadLecture(view.getContext());
-                            asyncTask.execute(lectureItem);
+                            setProgressBarState(lectureItem, holder);
+
+                            serviceInit(lectureItem);
                             return true;
                         } else if(menuItem.getItemId() == R.id.play_video) {
                             File mkvFilePath = Utils.getMkvFilePath(lectureItem, impartus.getDownloadDir());
@@ -155,6 +181,23 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
                                 Toast.makeText(view.getContext(), "Video does not exist, download it first.", Toast.LENGTH_SHORT).show();
                                 return false;
                             }
+                        } else if(menuItem.getItemId() == R.id.show_logs) {
+                            AlertDialog.Builder alert = new AlertDialog.Builder(view.getContext());
+                            alert.setTitle("Logs");
+                            // Create TextView
+                            final TextView logsView = new TextView (view.getContext());
+                            logsView.setVerticalScrollBarEnabled(true);
+                            logsView.setTextIsSelectable(true);
+                            logsView.setText(StringUtils.join(lectureItem.getLogs(), "\n"));
+                            alert.setView(logsView);
+
+                            alert.setNegativeButton("OK", new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int whichButton) {
+                                    // Canceled.
+                                }
+                            });
+                            alert.show();
+                            return true;
                         } else {
                             return false;
                         }
@@ -168,65 +211,23 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
 
     @Override
     public int getItemCount() {
-        return this.lectureItems.size();
+        return Lectures.lectureItems != null ? Lectures.lectureItems.size() : 0;
     }
 
     @SuppressLint("NotifyDataSetChanged")
     public void clear() {
-        lectureItems.clear();
+        Lectures.lectureItems.clear();
         notifyDataSetChanged();
     }
 
     // Add a list of items -- change to type used
     @SuppressLint("NotifyDataSetChanged")
     public void addAll(List<LectureItem> list) {
-        lectureItems.addAll(list);
+        Lectures.lectureItems.addAll(list);
         notifyDataSetChanged();
     }
 
-    private class DownloadLecture extends AsyncTask<LectureItem, Integer, Boolean> {
-        LectureItem lectureItem;
-        Context context;
-
-        public DownloadLecture(Context context) {
-            this.context = context;
-        }
-
-        @Override
-        protected Boolean doInBackground(LectureItem... items) {
-            lectureItem = items[0];
-            boolean debug = Utils.getKeyFromPrefs(context, "debug", false);
-            String videoQuality = Utils.getKeyFromPrefs(context, "video_quality", "highest");
-            return impartus.downloadLecture(lectureItem, new Callable() {
-                @Override
-                public void call(int value) {
-                    publishProgress(value);
-                }
-            }, videoQuality, debug);
-        }
-
-        @Override
-        protected void onProgressUpdate(Integer... progress) {
-            notifyItemChanged(lectureItem.getViewPosition());
-        }
-
-        @Override
-        protected void onPostExecute(Boolean status) {
-            downloadCounter--;
-            if(status) {
-                lectureItem.setDownloading(false);
-                lectureItem.setDownloadPercent(100);
-                Toast.makeText(context, "Download complete!", Toast.LENGTH_LONG).show();
-            } else {
-                lectureItem.setDownloading(false);
-                lectureItem.setDownloadPercent(0);
-                Toast.makeText(context, "Error downloading file!", Toast.LENGTH_LONG).show();
-            }
-        }
-    }
-
-
-    public static class ViewHolder extends RecyclerView.ViewHolder {
+    public class ViewHolder extends RecyclerView.ViewHolder {
         private final TextView topic;
         private final TextView subject;
         private final TextView faculty;
@@ -255,6 +256,46 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
 
         public void setPopupMenu(PopupMenu menu) {
             this.popupMenu = menu;
+        }
+    }
+
+    private void serviceInit(final LectureItem item) {
+        Intent intent = new Intent(this.context, DownloadService.class);
+
+        boolean debug = Utils.getPrefsKey(context, "debug", false);
+        String flippedVideoQuality = Utils.getPrefsKey(context, "video_quality", "highest");
+
+        intent.putExtra("impartus", impartus);
+        intent.putExtra("lectureitem", item);
+        intent.putExtra("flippedVideoQuality", flippedVideoQuality);
+        intent.putExtra("debug", debug);
+        intent.putExtra("receiver", new DownloadReceiver(new Handler()));
+        this.context.startService(intent);
+    }
+
+    public class DownloadReceiver extends ResultReceiver {
+
+        public DownloadReceiver(Handler handler) {
+            super(handler);
+        }
+
+        @Override
+        protected void onReceiveResult(int resultCode, Bundle resultData) {
+
+            super.onReceiveResult(resultCode, resultData);
+
+            if (resultCode == DownloadService.UPDATE_PROGRESS) {
+                int value = resultData.getInt("value");
+                int position = resultData.getInt("position");
+                Log.i("me", String.format("notifyItemChanged at pos: %s with value: %s", position, value));
+                if (value == 100) {
+                    downloadCounter--;
+                    downloadCounter = Math.max(0, downloadCounter);
+                    Utils.saveDataKey(context, "numDownalods", String.valueOf(downloadCounter));
+                }
+                Lectures.lectureItems.get(position).setDownloadPercent(value);
+                notifyItemChanged(position);
+            }
         }
     }
 }
