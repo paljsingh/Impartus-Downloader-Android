@@ -3,11 +3,15 @@ package jp.id;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.FragmentManager;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
+
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.util.Objects;
@@ -15,12 +19,15 @@ import java.util.Objects;
 import jp.id.activities.LoginActivity;
 import jp.id.activities.VideoActivity;
 import jp.id.core.Utils;
+import jp.id.model.AppLogs;
 
 public class SettingsFragment extends PreferenceFragmentCompat {
 
+    private final String tag = "SettingsFragment";
+
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
-        Log.d(this.getClass().getName(), "onCreatePreferences Called");
+        AppLogs.debug(tag, "onCreatePreferences Called");
         setPreferencesFromResource(R.xml.settings, rootKey);
 
         setupEventListeners();

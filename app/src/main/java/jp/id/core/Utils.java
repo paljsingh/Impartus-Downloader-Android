@@ -3,23 +3,23 @@ package jp.id.core;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.util.Log;
-
 import androidx.preference.PreferenceManager;
 
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 
-import com.arthenica.ffmpegkit.ExecuteCallback;
 import com.arthenica.ffmpegkit.FFmpegKit;
 import com.arthenica.ffmpegkit.FFmpegSession;
 
 import org.apache.commons.lang3.RegExUtils;
 
+import jp.id.model.AppLogs;
 import jp.id.model.LectureItem;
 
 public class Utils {
+
+    public static final String tag = "Utils";
 
     public static void runFfmpeg(List<String> args) {
         String[] argsArray = args.toArray(new String[0]);
@@ -43,7 +43,7 @@ public class Utils {
         if (! outputDir.exists()) {
             boolean success = outputDir.mkdir();
             if (!success) {
-                Log.e(Utils.class.getName(), String.format("Error creating temp directory %s.", outputDir));
+                AppLogs.error(tag, String.format("Error creating temp directory %s.", outputDir));
                 return null;
             }
         }

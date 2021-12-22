@@ -1,6 +1,7 @@
 package jp.id.activities;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
@@ -11,15 +12,16 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Parcelable;
 import android.os.StrictMode;
-import android.util.Log;
 import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
@@ -34,6 +36,7 @@ import jp.id.R;
 import jp.id.SettingsFragment;
 import jp.id.core.Impartus;
 import jp.id.core.Utils;
+import jp.id.model.AppLogs;
 import jp.id.model.LectureItem;
 import jp.id.model.Lectures;
 import jp.id.model.SubjectItem;
@@ -43,9 +46,11 @@ public class VideoActivity extends AppCompatActivity {
     private Impartus impartus;
     private SwipeRefreshLayout swipeContainer;
     private static final int REQUEST_WRITE_STORAGE = 112;
-    private static Bundle mBundleRecyclerViewState;
-    private RecyclerView mRecyclerView;
-    private final String KEY_RECYCLER_STATE = "recycler_state";
+
+    @SuppressLint("StaticFieldLeak")
+    private static LectureAdapter lectureAdapter = null;
+
+    private final String tag = "VideoActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,16 +61,14 @@ public class VideoActivity extends AppCompatActivity {
             StrictMode.setThreadPolicy(policy);
         }
         setContentView(R.layout.activity_video);
-        mRecyclerView = (RecyclerView) findViewById(R.id.recyclerView);//set to whatever view id you use
+        RecyclerView mRecyclerView = findViewById(R.id.recyclerView);//set to whatever view id you use
 
         String baseUrl = Utils.getUrlFromPrefs(this);
         String sessionToken = Utils.getSessionTokenFromPrefs(this);
         impartus = new Impartus(baseUrl, this.getCacheDir(), sessionToken);
 
         swipeContainer = findViewById(R.id.swipeContainer);
-        swipeContainer.setOnRefreshListener(() -> {
-            fetchAsyncLecturesIfNeeded(true);
-        });
+        swipeContainer.setOnRefreshListener(() -> fetchAsyncLecturesIfNeeded(true));
 
 
         fetchAsyncLecturesIfNeeded(false);
@@ -83,11 +86,12 @@ public class VideoActivity extends AppCompatActivity {
 
     private void fetchAsyncLecturesIfNeeded(final boolean forceRefresh) {
         if (shouldFetchNewData(forceRefresh)) {
+            AppLogs.info(tag, "Fetching new data from impartus site.");
             getAsyncLectures();
         } else {
             String jsonArray = Utils.getDataKey(this, "lectureitems", "[]");
             Type listType = new TypeToken<ArrayList<LectureItem>>() {}.getType();
-            Lectures.lectureItems = new Gson().fromJson(jsonArray, listType);
+            Lectures.setLectures(new Gson().fromJson(jsonArray, listType));
         }
     }
 
@@ -99,6 +103,7 @@ public class VideoActivity extends AppCompatActivity {
                 Toast.makeText(this, "The app was not allowed to write to your storage." +
                         " Hence, it cannot function properly. Please consider granting it this permission",
                         Toast.LENGTH_LONG).show();
+                AppLogs.error(tag, "User denied storage permission!");
             }
         }
     }
@@ -156,6 +161,8 @@ public class VideoActivity extends AppCompatActivity {
 
     private void getAsyncLectures() {
         Utils.savePrefsKey(this, "lastRefreshEpoch", String.valueOf(System.currentTimeMillis()));
+
+        AppLogs.info(tag, "Fetching lectures...");
         PopulateLectures asyncTask = new PopulateLectures();
         asyncTask.execute();
         Utils.savePrefsKey(this, "lastPersistEpoch", String.valueOf(System.currentTimeMillis()));
@@ -164,7 +171,10 @@ public class VideoActivity extends AppCompatActivity {
     protected void attachAdapter() {
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(VideoActivity.this));
-        LectureAdapter lectureAdapter = new LectureAdapter(this, recyclerView, impartus);
+
+        if (lectureAdapter == null) {
+            lectureAdapter = new LectureAdapter(this, recyclerView, impartus);
+        }
         recyclerView.setAdapter(lectureAdapter);
     }
 
@@ -176,6 +186,51 @@ public class VideoActivity extends AppCompatActivity {
                 .replace(R.id.settings, settingsFragment)
                 .commit();
     }
+
+    public void onClickShowLogsButton(View view) {
+        AlertDialog.Builder alert = new AlertDialog.Builder(view.getContext());
+        alert.setTitle("Logs");
+        alert.setIcon(R.drawable.folder);
+
+        // Create TextView
+        final TextView logsView = new TextView (view.getContext());
+        logsView.setPadding(10, 0, 10, 0);
+        logsView.setLineSpacing(0.0F, 1.5F);
+        logsView.setVerticalScrollBarEnabled(true);
+        logsView.setTextIsSelectable(true);
+        logsView.setText(AppLogs.getLogs());
+        alert.setView(logsView);
+
+        alert.setPositiveButton("OK", null);
+        alert.setNegativeButton("Clear Logs", null);
+
+        final AlertDialog alertDialog = alert.create();
+
+        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(final DialogInterface dialog) {
+                Button positiveButton = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+                positiveButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dialog.dismiss();
+                    }
+                });
+
+                Button negativeButton = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+                negativeButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        AppLogs.clear();
+                        logsView.setText("");
+                    }
+                });
+            }
+        });
+
+        alertDialog.show();
+    }
+
 
     @SuppressLint("StaticFieldLeak")
     private class PopulateLectures extends AsyncTask<Void, Void, Void> {
@@ -196,19 +251,20 @@ public class VideoActivity extends AppCompatActivity {
         protected Void doInBackground(Void... aVoid) {
             final List<SubjectItem> subjects = impartus.getSubjects();
 
-            Lectures.lectureItems = new ArrayList<>();
+            List<LectureItem> lectureItems = new ArrayList<>();
             boolean fetchRegular = Utils.getPrefsKey(VideoActivity.this, "regular_videos", true);
             if (fetchRegular) {
-                Log.d(this.getClass().getName(), "fetching regular lectures");
-                Lectures.lectureItems.addAll(impartus.getLectures(subjects));
+                AppLogs.info(tag, "Fetching regular lectures");
+                lectureItems.addAll(impartus.getLectures(subjects));
             }
 
             boolean fetchFlipped = Utils.getPrefsKey(VideoActivity.this, "flipped_videos", false);
             if (fetchFlipped) {
-                Log.d(this.getClass().getName(), "fetching flipped lectures");
-                Lectures.lectureItems.addAll(impartus.getFlippedLectures(subjects));
+                AppLogs.info(tag, "Fetching flipped lectures");
+                lectureItems.addAll(impartus.getFlippedLectures(subjects));
             }
 
+            Lectures.setLectures(lectureItems);
             return null;
         }
 
@@ -217,29 +273,10 @@ public class VideoActivity extends AppCompatActivity {
             super.onPostExecute(aVoid);
             progressbar.hide();
             progressbar.dismiss();
-            persistData(Lectures.lectureItems);
+            persistData(Lectures.getLectures());
             swipeContainer.setRefreshing(false);
 
             attachAdapter();
-        }
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle state)
-    {
-        super.onSaveInstanceState(state);
-        Parcelable mRecylclerState = mRecyclerView.getLayoutManager().onSaveInstanceState();
-        state.putParcelable(KEY_RECYCLER_STATE, mRecylclerState);
-    }
-
-    @Override
-    protected void onRestoreInstanceState(Bundle state)
-    {
-        super.onRestoreInstanceState(state);
-
-        // restore RecyclerView state
-        if (state != null) {
-            mBundleRecyclerViewState = state.getParcelable(KEY_RECYCLER_STATE);
         }
     }
 }

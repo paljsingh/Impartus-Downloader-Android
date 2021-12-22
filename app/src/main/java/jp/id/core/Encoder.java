@@ -1,39 +1,26 @@
 package jp.id.core;
 
-import android.util.Log;
-
-import com.arthenica.ffmpegkit.ExecuteCallback;
-import com.arthenica.ffmpegkit.ReturnCode;
-import com.arthenica.ffmpegkit.Session;
-import com.arthenica.ffmpegkit.SessionState;
-
 import org.apache.commons.io.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import jp.id.model.AppLogs;
 import jp.id.model.LectureItem;
 
 public class Encoder {
 
-    public static ExecuteCallback defaultCallback = new ExecuteCallback() {
-        @Override
-        public void apply(Session session) {
-            SessionState state = session.getState();
-            ReturnCode returnCode = session.getReturnCode();
-            Log.d(Encoder.class.getName(), String.format("FFmpeg process exited with state %s and rc %s.%s", state, returnCode, session.getFailStackTrace()));
-        }
-    };
+    public static final String tag = "Encoder";
 
-    public static File join(List<File> files, String dir, int trackNumber, final LectureItem item) {
+    public static File join(List<File> files, String dir, int trackNumber) {
         File outFilePath = new File(String.format("%s/track-%s.ts", dir, trackNumber));
         for(File file: files) {
             try {
                 byte[] bytes = FileUtils.readFileToByteArray(file);
                 FileUtils.writeByteArrayToFile(outFilePath, bytes, true);
             } catch (IOException e) {
-                item.appendLog(String.format("Exception while joining streams: %s", e.getMessage()));
+                AppLogs.error(tag, String.format("Exception while joining streams: %s", e.getMessage()));
                 e.printStackTrace();
                 return null;
             }
@@ -41,7 +28,7 @@ public class Encoder {
         return outFilePath;
     }
 
-    public static boolean splitTrack(final List<File> trackFiles, final int duration, final boolean debug, final LectureItem item) {
+    public static boolean splitTrack(final List<File> trackFiles, final int duration, final boolean debug) {
         String logLevel = "quiet";
         if (debug) {
             logLevel = "verbose";
@@ -125,16 +112,15 @@ public class Encoder {
             }
 
             if (splitFlag) {
-                Log.d(Encoder.class.getName(), String.format("[%s]: Splitting track 0 .. ", item.getId()));
-                boolean splitSuccess = Encoder.splitTrack(trackFiles, item.getDuration(), debug, item);
+                AppLogs.debug(tag, String.format("[%s]: Splitting track 0 .. ", item.getId()));
+                boolean splitSuccess = Encoder.splitTrack(trackFiles, item.getDuration(), debug);
                 if (! splitSuccess) {
-                    Log.e(Encoder.class.getName(), "Error splitting track 0");
-                    item.appendLog("ERROR splitting track 0.");
+                    AppLogs.error(tag, "Error splitting track 0");
                     return false;
                 }
             }
 
-            Log.i(Encoder.class.getName(), String.format("[%s]: Encoding output file ..", item.getId()));
+            AppLogs.info(tag, String.format("[%s]: Encoding output file ..", item.getId()));
             List<String> commandArgs = new ArrayList<>();
             commandArgs.add("-y");
             commandArgs.add("-loglevel");
@@ -158,16 +144,14 @@ public class Encoder {
 
             Utils.runFfmpeg(commandArgs);
         } catch (Exception ex) {
-            Log.e(Encoder.class.getName(), String.format("[%s]: ffmpeg exception: %s", item.getId(), ex));
-            item.appendLog(String.format("[%s]: ffmpeg exception: %s", item.getId(), ex));
-
+            AppLogs.error(tag, String.format("[%s]: ffmpeg exception: %s", item.getId(), ex));
             String filename = trackFiles.get(0) != null ? trackFiles.get(0).getName() : "null";
             StringBuilder fileNames = new StringBuilder(filename);
             for(int i=1; i<trackFiles.size(); i++) {
                 filename = trackFiles.get(0) != null ? trackFiles.get(i).getName() : "null";
                 fileNames.append(", ").append(filename);
             }
-            Log.e(Encoder.class.getName(), String.format("[%s]: Check the ts file(s) generated at location: %s", item.getId(), fileNames));
+            AppLogs.error(tag, String.format("[%s]: Check the ts file(s) generated at location: %s", item.getId(), fileNames));
             return false;
         }
         return true;

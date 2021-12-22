@@ -12,9 +12,11 @@ import android.widget.Toast;
 import jp.id.R;
 import jp.id.core.Impartus;
 import jp.id.core.Utils;
+import jp.id.model.AppLogs;
 
 public class LoginActivity extends AppCompatActivity {
 
+    private final String tag = "LoginActivity";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -31,6 +33,7 @@ public class LoginActivity extends AppCompatActivity {
         String sessionToken = Utils.getSessionTokenFromPrefs(this);
         String baseUrl = Utils.getUrlFromPrefs(this);
         if (sessionToken != null && Impartus.isValidSession(sessionToken) && baseUrl != null) {
+            AppLogs.info(tag, "Logging in to impartus site using existing session-token.");
             launchVideoActivity();
         }
     }
@@ -46,10 +49,12 @@ public class LoginActivity extends AppCompatActivity {
         String username = ((EditText) findViewById(R.id.username)).getText().toString();
         String password = ((EditText) findViewById(R.id.password)).getText().toString();
 
-        TextView failedLogin = (TextView) findViewById(R.id.failed_login);
+        TextView failedLogin = findViewById(R.id.failed_login);
         failedLogin.setVisibility(TextView.INVISIBLE);
 
         Impartus impartus = new Impartus(baseUrl, this.getCacheDir());
+
+        AppLogs.info(tag, String.format("Logging in to impartus site with username: %s", username));
         boolean success = impartus.login(username, password);
         if (success) {
             // save session token, and launch video activity.
@@ -58,7 +63,9 @@ public class LoginActivity extends AppCompatActivity {
 
             launchVideoActivity();
         } else {
-            Toast.makeText(view.getContext(), "Error logging to impartus, please check your login credentials.", Toast.LENGTH_LONG).show();
+            final String error = "Error logging to impartus, please check your login credentials.";
+            AppLogs.error(tag, error);
+            Toast.makeText(view.getContext(), error, Toast.LENGTH_LONG).show();
             failedLogin.setVisibility(TextView.VISIBLE);
         }
     }
