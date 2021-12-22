@@ -4,8 +4,6 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
 
 
 public class LectureItem implements Parcelable {
@@ -18,12 +16,10 @@ public class LectureItem implements Parcelable {
     private final int duration;
     private final String subjectName;
     private final boolean flipped;
-    private boolean selected;
     private int downloadPercent;
     private File offlinePath;
     private boolean downloading;
     private final int viewPosition;
-    private List<String> logs;
 
     public void setDownloading(boolean downloading) {
         this.downloading = downloading;
@@ -37,14 +33,6 @@ public class LectureItem implements Parcelable {
         return viewPosition;
     }
 
-    public List<String> getLogs() {
-        return logs;
-    }
-
-    public void appendLog(final String log) {
-        this.logs.add(log);
-    }
-
     public LectureItem(int id, int seqNo, String topic, String professorName, String date, int numTracks, int duration, String subjectName, boolean flipped, int viewPosition) {
         this.id = id;
         this.seqNo = seqNo;
@@ -56,14 +44,11 @@ public class LectureItem implements Parcelable {
         this.subjectName = subjectName;
         this.flipped = flipped;
 
-        this.selected = false;
         this.downloadPercent = 0;
 
         this.offlinePath = null;
         this.downloading = false;
         this.viewPosition = viewPosition;
-
-        this.logs = new ArrayList<>();
     }
 
     public int getId() {
@@ -98,16 +83,8 @@ public class LectureItem implements Parcelable {
         return subjectName;
     }
 
-    public void setSelected(final boolean value) {
-        this.selected = value;
-    }
-
     public boolean isFlipped() {
         return flipped;
-    }
-
-    public boolean getSelected() {
-        return this.selected;
     }
 
     public int getDownloadPercent() { return this.downloadPercent; }
@@ -145,7 +122,6 @@ public class LectureItem implements Parcelable {
         dest.writeInt(duration);
         dest.writeString(subjectName);
         dest.writeString(Boolean.toString(flipped));
-        dest.writeString(Boolean.toString(selected));
         dest.writeInt(downloadPercent);
         dest.writeString(Boolean.toString(downloading));
         dest.writeInt(viewPosition);
@@ -155,8 +131,6 @@ public class LectureItem implements Parcelable {
         } else {
             dest.writeString("null");
         }
-
-        dest.writeStringList(logs);
 
     }
 
@@ -180,7 +154,6 @@ public class LectureItem implements Parcelable {
         duration = in.readInt();
         subjectName = in.readString();
         flipped = Boolean.parseBoolean(in.readString());
-        selected = Boolean.parseBoolean(in.readString());
         downloadPercent = in.readInt();
         downloading = Boolean.getBoolean(in.readString());
         viewPosition = in.readInt();
@@ -191,8 +164,5 @@ public class LectureItem implements Parcelable {
         } else {
             offlinePath = new File(offlinePathStr);
         }
-
-        logs = new ArrayList<>();
-        in.readStringList(logs);
     }
 }
