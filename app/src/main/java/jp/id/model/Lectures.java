@@ -3,6 +3,8 @@ package jp.id.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import jp.id.core.Utils;
+
 public class Lectures {
     private static final List<LectureItem> lectureItems = new ArrayList<>();
 
@@ -13,7 +15,7 @@ public class Lectures {
     }
 
     public static void setLectures(List<LectureItem> items) {
+        lectureItems.clear();
         lectureItems.addAll(items);
     }
-
 }

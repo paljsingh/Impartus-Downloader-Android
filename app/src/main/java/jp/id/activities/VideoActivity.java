@@ -95,7 +95,20 @@ public class VideoActivity extends AppCompatActivity {
         } else {
             String jsonArray = Utils.getDataKey(this, "lectureitems", "[]");
             Type listType = new TypeToken<ArrayList<LectureItem>>() {}.getType();
-            Lectures.setLectures(new Gson().fromJson(jsonArray, listType));
+            List<LectureItem> items = new Gson().fromJson(jsonArray, listType);
+            reconcile(items);
+            Lectures.setLectures(items);
+            Utils.saveDataKey(this, "lectureitems", new Gson().toJson(items));
+        }
+    }
+
+    private void reconcile(List<LectureItem> items) {
+        for(LectureItem item: items) {
+            if (Utils.getMkvFilePath(item, impartus.getDownloadDir()).exists()) {
+                item.setDownloadPercent(100);
+            } else {
+                item.setDownloadPercent(0);
+            }
         }
     }
 
