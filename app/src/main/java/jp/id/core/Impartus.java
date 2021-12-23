@@ -443,9 +443,9 @@ public class Impartus implements Parcelable {
                     // get percentage of items processed.
                     itemsProcessed += 1;
                     Integer mediaFiles = summary.get("mediaFiles");
-                    int mediaFilesCount = mediaFiles != null ? Math.max(1, mediaFiles) : 1;
 
-                    // update progress bar here...
+                    // mediaFilesCount must be >=1, avoid divide by 0.
+                    int mediaFilesCount = mediaFiles != null ? Math.max(1, mediaFiles) : 1;
                     int itemsProcessedPercent = itemsProcessed * 100 / mediaFilesCount;
 
                     // update ui only when necessary
@@ -548,7 +548,7 @@ public class Impartus implements Parcelable {
                 }
                 downloadFlag = true;
             } catch (IOException e) {
-                AppLogs.error(tag, String.format("Exception while writing stream to file: %s", e.getMessage()));
+                AppLogs.error(tag, String.format("Error while writing stream to file: %s", e.getMessage()));
                 e.printStackTrace();
             }
         }

@@ -19,8 +19,12 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.StrictMode;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -188,9 +192,9 @@ public class VideoActivity extends AppCompatActivity {
     }
 
     public void onClickShowLogsButton(View view) {
-        AlertDialog.Builder alert = new AlertDialog.Builder(view.getContext());
-        alert.setTitle("Logs");
-        alert.setIcon(R.drawable.folder);
+        AlertDialog.Builder builder = new AlertDialog.Builder(view.getContext());
+        builder.setTitle("Logs");
+        builder.setIcon(R.drawable.folder);
 
         // Create TextView
         final TextView logsView = new TextView (view.getContext());
@@ -199,12 +203,26 @@ public class VideoActivity extends AppCompatActivity {
         logsView.setVerticalScrollBarEnabled(true);
         logsView.setTextIsSelectable(true);
         logsView.setText(AppLogs.getLogs());
-        alert.setView(logsView);
 
-        alert.setPositiveButton("OK", null);
-        alert.setNegativeButton("Clear Logs", null);
+        logsView.setHeight(600);
+        builder.setView(logsView);
 
-        final AlertDialog alertDialog = alert.create();
+        builder.setPositiveButton("OK", null);
+        builder.setNegativeButton("Clear Logs", null);
+
+        final boolean[] debugLogs = new boolean[] {false};
+        builder.setMultiChoiceItems(new String[]{"Debug Logs?"}, debugLogs, new DialogInterface.OnMultiChoiceClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which, boolean isChecked) {
+                if (isChecked) {
+                    logsView.setText(AppLogs.getLogs(AppLogs.LogLevels.DEBUG.ordinal()));
+                } else {
+                    logsView.setText(AppLogs.getLogs(AppLogs.LogLevels.INFO.ordinal()));
+                }
+            }
+        });
+
+        final AlertDialog alertDialog = builder.create();
 
         alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
             @Override
@@ -217,8 +235,8 @@ public class VideoActivity extends AppCompatActivity {
                     }
                 });
 
-                Button negativeButton = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-                negativeButton.setOnClickListener(new View.OnClickListener() {
+                Button clearLogsButton = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+                clearLogsButton.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         AppLogs.clear();

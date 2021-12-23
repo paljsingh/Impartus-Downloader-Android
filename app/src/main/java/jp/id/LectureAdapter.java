@@ -60,27 +60,29 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
         }
     }
 
-    private void setProgressBarVisibility(ViewHolder holder, final int visibility) {
-        holder.progressBar.setVisibility(visibility);
-        holder.progressBarText.setVisibility(visibility);
-    }
-
-    private void updateProgressBar(ViewHolder holder, int value) {
-        holder.progressBar.setProgress(value);
-        holder.progressBarText.setText(String.format("%s%%", value));
-    }
-
     private void setProgressBarState(final LectureItem lectureItem, ViewHolder holder) {
         File mkvFilePath = Utils.getMkvFilePath(lectureItem, impartus.getDownloadDir());
+        int value;
+        int visibility;
+
         if (mkvFilePath.exists()) {
             lectureItem.setDownloadPercent(100);
-            this.setProgressBarVisibility(holder, View.VISIBLE);
-        } else if (lectureItem.isDownloading()) {
-            this.setProgressBarVisibility(holder, View.VISIBLE);
-        } else {
-            this.setProgressBarVisibility(holder, View.INVISIBLE);
         }
-        this.updateProgressBar(holder, lectureItem.getDownloadPercent());
+
+        // set visibility
+        if(lectureItem.getDownloadPercent() > 0 || lectureItem.isDownloading()) {
+            visibility = View.VISIBLE;
+        } else {
+            visibility = View.INVISIBLE;
+        }
+
+        value = lectureItem.getDownloadPercent();
+
+        holder.progressBar.setProgress(value);
+        holder.progressBar.setVisibility(visibility);
+
+        holder.progressBarText.setText(String.format("%s%%", value));
+        holder.progressBarText.setVisibility(visibility);
     }
 
     @SuppressLint("DefaultLocale")
@@ -243,12 +245,17 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
             if (resultCode == DownloadService.UPDATE_PROGRESS) {
                 int value = resultData.getInt("value");
                 int position = resultData.getInt("position");
+                LectureItem item = Lectures.getLectures().get(position);
+                item.setDownloadPercent(value);
+
                 if (value == 100) {
+                    // no longer downloading, ensures Download/Play button states are appropriately set.
+                    item.setDownloading(false);
+
                     downloadCounter--;
                     downloadCounter = Math.max(0, downloadCounter);
                     Utils.saveDataKey(context, "numDownloads", String.valueOf(downloadCounter));
                 }
-                Lectures.getLectures().get(position).setDownloadPercent(value);
                 notifyItemChanged(position);
             }
         }
