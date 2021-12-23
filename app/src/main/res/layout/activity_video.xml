@@ -23,8 +23,8 @@
             android:id="@+id/recyclerView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingRight="4dp"
-            android:paddingLeft="4dp">
+            android:paddingRight="4sp"
+            android:paddingLeft="4sp">
         </androidx.recyclerview.widget.RecyclerView>
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
@@ -32,21 +32,21 @@
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="56sp"
         android:layout_gravity="start"
         android:background="#000000"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:titleTextColor="#ffffff"
-        android:elevation="4dp"
+        android:elevation="4sp"
         >
 
         <ImageView
             android:id="@+id/logo"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:layout_marginStart="8dp"
+            android:layout_width="56sp"
+            android:layout_height="56sp"
+            android:layout_marginStart="8sp"
             android:background="@android:color/transparent"
             android:contentDescription="@string/settings"
             android:onClick="onClickSettingsButton"
@@ -58,9 +58,9 @@
 
         <ImageButton
             android:id="@+id/settings"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:layout_marginEnd="8dp"
+            android:layout_width="56sp"
+            android:layout_height="56sp"
+            android:layout_marginEnd="8sp"
             android:background="@android:color/transparent"
             android:contentDescription="@string/settings"
             android:onClick="onClickSettingsButton"
@@ -72,9 +72,9 @@
 
         <ImageButton
             android:id="@+id/show_logs"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:layout_marginEnd="8dp"
+            android:layout_width="56sp"
+            android:layout_height="56sp"
+            android:layout_marginEnd="8sp"
             android:contentDescription="@string/show_logs"
             android:background="@android:color/transparent"
             android:onClick="onClickShowLogsButton"
