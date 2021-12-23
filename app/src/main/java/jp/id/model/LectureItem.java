@@ -3,8 +3,6 @@ package jp.id.model;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import java.io.File;
-
 
 public class LectureItem implements Parcelable {
     private final int id;
@@ -17,7 +15,6 @@ public class LectureItem implements Parcelable {
     private final String subjectName;
     private final boolean flipped;
     private int downloadPercent;
-    private File offlinePath;
     private boolean downloading;
     private final int viewPosition;
 
@@ -46,7 +43,6 @@ public class LectureItem implements Parcelable {
 
         this.downloadPercent = 0;
 
-        this.offlinePath = null;
         this.downloading = false;
         this.viewPosition = viewPosition;
     }
@@ -97,15 +93,6 @@ public class LectureItem implements Parcelable {
         }
     }
 
-    public File getOfflinePath() {
-        return offlinePath;
-    }
-
-    public void setOfflinePath(File offlinePath) {
-        this.offlinePath = offlinePath;
-    }
-
-
     @Override
     public int describeContents() {
         return 0;
@@ -125,13 +112,6 @@ public class LectureItem implements Parcelable {
         dest.writeInt(downloadPercent);
         dest.writeString(Boolean.toString(downloading));
         dest.writeInt(viewPosition);
-
-        if (offlinePath != null) {
-            dest.writeString(offlinePath.getAbsolutePath());
-        } else {
-            dest.writeString("null");
-        }
-
     }
 
     public static final Parcelable.Creator<LectureItem> CREATOR = new Parcelable.Creator<LectureItem>() {
@@ -157,12 +137,5 @@ public class LectureItem implements Parcelable {
         downloadPercent = in.readInt();
         downloading = Boolean.getBoolean(in.readString());
         viewPosition = in.readInt();
-
-        String offlinePathStr = in.readString();
-        if (offlinePathStr.equals("null")) {
-            offlinePath = null;
-        } else {
-            offlinePath = new File(offlinePathStr);
-        }
     }
 }

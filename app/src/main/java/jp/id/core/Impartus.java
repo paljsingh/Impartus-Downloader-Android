@@ -4,6 +4,7 @@ import android.os.Environment;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Base64;
+import android.widget.Toast;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -452,6 +453,10 @@ public class Impartus implements Parcelable {
                         item.setDownloadPercent(itemsProcessedPercent);
                         task.call(itemsProcessedPercent);
                     }
+
+                    if (itemsProcessed == mediaFilesCount) {
+                        item.setDownloading(false);
+                    }
                 }   // for each videoStream
 
                 // All stream files for this track are decrypted, join them.
@@ -476,7 +481,6 @@ public class Impartus implements Parcelable {
             boolean encodeSuccess = Encoder.encodeMkv(item, trackFiles, mkvFilePath.getAbsolutePath(), debug);
 
             if (encodeSuccess) {
-                item.setOfflinePath(mkvFilePath);
                 AppLogs.info(tag, String.format("[%s]: Processed %s", item.getId(), mkvFilePath));
                 AppLogs.info(tag, "---");
             } else {

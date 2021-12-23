@@ -8,7 +8,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.ResultReceiver;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -75,7 +74,6 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
         File mkvFilePath = Utils.getMkvFilePath(lectureItem, impartus.getDownloadDir());
         if (mkvFilePath.exists()) {
             lectureItem.setDownloadPercent(100);
-            lectureItem.setOfflinePath(mkvFilePath);
             this.setProgressBarVisibility(holder, View.VISIBLE);
         } else if (lectureItem.isDownloading()) {
             this.setProgressBarVisibility(holder, View.VISIBLE);
@@ -118,17 +116,17 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
 
             //inflating menu from xml resource
             popup.inflate(R.menu.context_menu);
+            final File mkvFilePath = Utils.getMkvFilePath(lectureItem, impartus.getDownloadDir());
 
             // disable download menu, if file is already downloaded or download in progress.
-            if ((lectureItem.getOfflinePath() != null && lectureItem.getOfflinePath().exists()) ||
-                    lectureItem.isDownloading() ) {
+            if (mkvFilePath.exists() || lectureItem.isDownloading()) {
                 popup.getMenu().getItem(DOWNLOAD_VIDEO).setEnabled(false);
             } else {
                 popup.getMenu().getItem(DOWNLOAD_VIDEO).setEnabled(true);
             }
 
             // enable play video if file is downloaded.
-            if (lectureItem.getOfflinePath() != null && lectureItem.getOfflinePath().exists()) {
+            if (mkvFilePath.exists()) {
                 popup.getMenu().getItem(PLAY_VIDEO).setEnabled(true);
             } else {
                 popup.getMenu().getItem(PLAY_VIDEO).setEnabled(false);
@@ -141,7 +139,6 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
                     downloadCounter++;
                     Utils.saveDataKey(view.getContext(), "numDownloads", String.valueOf(downloadCounter));
 
-                    File mkvFilePath = Utils.getMkvFilePath(lectureItem, impartus.getDownloadDir());
                     if (downloadCounter > 1) {
                         AppLogs.info(tag, String.format("Download queued for %s", mkvFilePath.getAbsolutePath()));
                         Toast.makeText(view.getContext(), "Download Queued!", Toast.LENGTH_SHORT).show();
@@ -158,7 +155,6 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
                     serviceInit(lectureItem);
                     return true;
                 } else if(menuItem.getItemId() == R.id.play_video) {
-                    File mkvFilePath = Utils.getMkvFilePath(lectureItem, impartus.getDownloadDir());
                     if (mkvFilePath.exists()) {
                         final String msg = String.format("Playing video %s", mkvFilePath.getAbsolutePath());
                         AppLogs.info(tag, msg);

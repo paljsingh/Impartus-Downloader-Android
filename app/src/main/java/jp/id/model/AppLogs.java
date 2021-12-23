@@ -35,7 +35,8 @@ public class AppLogs {
 
     public static String getLogs(final int level) {
         StringBuilder sb = new StringBuilder();
-        for(LogLine line: logLines) {
+        for(int i=0; i< logLines.size(); i++) {
+            LogLine line = logLines.get(i);
             if (line.getLogLevel() >= level) {
                 sb.append(line.toString());
             }
