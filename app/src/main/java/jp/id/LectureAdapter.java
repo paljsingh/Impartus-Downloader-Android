@@ -246,7 +246,7 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
                 if (value == 100) {
                     downloadCounter--;
                     downloadCounter = Math.max(0, downloadCounter);
-                    Utils.saveDataKey(context, "numDownalods", String.valueOf(downloadCounter));
+                    Utils.saveDataKey(context, "numDownloads", String.valueOf(downloadCounter));
                 }
                 Lectures.getLectures().get(position).setDownloadPercent(value);
                 notifyItemChanged(position);

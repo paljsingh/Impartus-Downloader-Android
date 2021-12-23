@@ -13,6 +13,7 @@ import jp.id.R;
 import jp.id.core.Impartus;
 import jp.id.core.Utils;
 import jp.id.model.AppLogs;
+import jp.id.BuildConfig;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -29,6 +30,8 @@ public class LoginActivity extends AppCompatActivity {
         }
         setContentView(R.layout.activity_login);
 
+        refreshDataIfRequired();
+
         // if we have a valid session saved, jump to video activity.
         String sessionToken = Utils.getSessionTokenFromPrefs(this);
         String baseUrl = Utils.getUrlFromPrefs(this);
@@ -37,6 +40,18 @@ public class LoginActivity extends AppCompatActivity {
             launchVideoActivity();
         }
     }
+
+    private void refreshDataIfRequired() {
+        final int currentVersion = BuildConfig.VERSION_CODE;
+        final int savedVersion = Integer.parseInt(Utils.getDataKey(this, "version", "0"));
+        if (savedVersion < currentVersion) {
+            Utils.deleteDataKeys(this);
+        }
+
+        Utils.setDefaultDataKeys(this);
+
+    }
+
 
     public void launchVideoActivity() {
         Intent intent = new Intent(LoginActivity.this, VideoActivity.class);

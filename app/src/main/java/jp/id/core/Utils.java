@@ -15,6 +15,7 @@ import com.arthenica.ffmpegkit.FFmpegSession;
 import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import jp.id.BuildConfig;
 import jp.id.model.AppLogs;
 import jp.id.model.LectureItem;
 
@@ -33,8 +34,8 @@ public class Utils {
     }
 
     public static File getMkvFilePath(LectureItem item, File downloadDir) {
-        String mkvFileName = sanitize(String.format("%s-%s-%s.mkv", item.getSeqNo(), Utils.truncateTo(item.getTopic(), 20), item.getDate()));
-        String mkvDirPath = String.format("%s/%s", downloadDir, Utils.truncateTo(sanitize(item.getSubjectName()), 30));
+        String mkvFileName = sanitize(String.format("%s-%s-%s.mkv", item.getSeqNo(), item.getTopic(), item.getDate()));
+        String mkvDirPath = String.format("%s/%s", downloadDir, sanitize(item.getSubjectName()));
 
         return new File(String.format("%s/%s", mkvDirPath, mkvFileName));
     }
@@ -159,5 +160,20 @@ public class Utils {
         return PreferenceManager.getDefaultSharedPreferences(context).getBoolean(key, defaultValue);
     }
 
+    public static void deleteDataKeys(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences("data", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        for(String key: prefs.getAll().keySet()) {
+            editor.remove(key);
+        }
+        editor.apply();
+    }
+
+    public static void setDefaultDataKeys(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences("data", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("version", String.valueOf(BuildConfig.VERSION_CODE));
+        editor.apply();
+    }
 
 }
