@@ -140,7 +140,7 @@ public class Impartus implements Parcelable {
         }
         Request request = builder.build();
 
-        int maxRetries = 3;
+        int maxRetries = Integer.parseInt(Utils.getPrefsKey("retry_count", "5"));;
         int retryCount = 0;
         while(true) {
             try {
@@ -148,16 +148,16 @@ public class Impartus implements Parcelable {
                 return client.newCall(request).execute();
             } catch (UnknownHostException e) {
                 AppLogs.warn(tag, "No internet ?");
-                return null;
             } catch (IOException e) {
-                retryCount++;
-                if (retryCount <= maxRetries) {
-                    AppLogs.debug(tag, String.format("Request to %s timed out, retrying.", url));
-                } else {
-                    AppLogs.error(tag, String.format("Error when sending request to %s, giving up.", url));
-                    e.printStackTrace();
-                    break;
-                }
+                e.printStackTrace();
+            }
+
+            retryCount++;
+            if (retryCount <= maxRetries) {
+                AppLogs.debug(tag, String.format("Request to %s timed out, retrying.", url));
+            } else {
+                AppLogs.error(tag, String.format("Error when sending request to %s, giving up.", url));
+                break;
             }
         }
         return null;
@@ -423,12 +423,15 @@ public class Impartus implements Parcelable {
                 for (VideoStream stream : track.getStreams()) {
 
                     // download encrypted stream..
-                    File encStreamFilepath = writeStreamToFile(stream, tempDir);
-                    if(encStreamFilepath == null) {
+                    File encStreamFilepath;
+                    try {
+                        encStreamFilepath = writeStreamToFile(stream, tempDir);
+                        filesToDelete.add(encStreamFilepath);
+                    } catch (StreamException e) {
+                        // do not delete any temp files, so that we can re-use them on a subsequent download.
                         task.call(0, LectureItem.DownloadStatus.FAILED.ordinal());
                         return;
                     }
-                    filesToDelete.add(encStreamFilepath);
 
                     // decrypt stream file if encrypted.
                     if (stream.getEncryptionMethod().equals("NONE")) {
@@ -540,25 +543,24 @@ public class Impartus implements Parcelable {
         return decryptedStreamFilepath;
     }
 
-    private File writeStreamToFile(final VideoStream stream, final File tempDir) {
+    private File writeStreamToFile(final VideoStream stream, final File tempDir) throws StreamException {
         File encStreamFilepath = new File(String.format("%s/%s", tempDir, stream.getFileNumber()));
 
-        boolean downloadFlag = false;
-
-        while (!downloadFlag) {
-            try {
-                Response streamResponse = sendGetRequest(stream.getUrl(), false);
-                if (streamResponse != null) {
-                    FileUtils.copyInputStreamToFile(Objects.requireNonNull(streamResponse.body()).byteStream(), encStreamFilepath);
-                }
-                downloadFlag = true;
-            } catch (IOException e) {
-                AppLogs.error(tag, String.format("Error while writing stream to file: %s", e.getMessage()));
-                e.printStackTrace();
-                return null;
-            }
+        // do not download if we have this already.
+        if(encStreamFilepath.exists() && encStreamFilepath.length() > 0) {
+            return encStreamFilepath;
         }
-        return encStreamFilepath;
+
+        try {
+            Response streamResponse = sendGetRequest(stream.getUrl(), false);
+            if (streamResponse != null) {
+                FileUtils.copyInputStreamToFile(Objects.requireNonNull(streamResponse.body()).byteStream(), encStreamFilepath);
+                return encStreamFilepath;
+            }
+        } catch (IOException e) {
+            AppLogs.error(tag, String.format("Error while writing stream to file: %s", e.getMessage()));
+        }
+        throw (new StreamException());
     }
 
     private List<String> getM3u8Urls(final String masterUrl) {
@@ -620,6 +622,11 @@ public class Impartus implements Parcelable {
             }
         }
         return new String[0];
+    }
+
+    private static class StreamException extends Throwable {
+
+
     }
 
 }
