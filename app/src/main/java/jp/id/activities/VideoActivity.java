@@ -12,19 +12,14 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
-import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.StrictMode;
-import android.view.Gravity;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -224,39 +219,25 @@ public class VideoActivity extends AppCompatActivity {
         builder.setNegativeButton("Clear Logs", null);
 
         final boolean[] debugLogs = new boolean[] {false};
-        builder.setMultiChoiceItems(new String[]{"Debug Logs?"}, debugLogs, new DialogInterface.OnMultiChoiceClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which, boolean isChecked) {
-                if (isChecked) {
-                    logsView.setText(AppLogs.getLogs(AppLogs.LogLevels.DEBUG.ordinal()));
-                } else {
-                    logsView.setText(AppLogs.getLogs(AppLogs.LogLevels.INFO.ordinal()));
-                }
+        builder.setMultiChoiceItems(new String[]{"Debug Logs?"}, debugLogs, (dialog, which, isChecked) -> {
+            if (isChecked) {
+                logsView.setText(AppLogs.getLogs(AppLogs.LogLevels.DEBUG.ordinal()));
+            } else {
+                logsView.setText(AppLogs.getLogs(AppLogs.LogLevels.INFO.ordinal()));
             }
         });
 
         final AlertDialog alertDialog = builder.create();
 
-        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
-            @Override
-            public void onShow(final DialogInterface dialog) {
-                Button positiveButton = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
-                positiveButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        dialog.dismiss();
-                    }
-                });
+        alertDialog.setOnShowListener(dialog -> {
+            Button positiveButton = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positiveButton.setOnClickListener(v -> dialog.dismiss());
 
-                Button clearLogsButton = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-                clearLogsButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        AppLogs.clear();
-                        logsView.setText("");
-                    }
-                });
-            }
+            Button clearLogsButton = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+            clearLogsButton.setOnClickListener(v -> {
+                AppLogs.clear();
+                logsView.setText("");
+            });
         });
 
         alertDialog.show();
