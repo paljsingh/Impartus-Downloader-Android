@@ -15,19 +15,28 @@ public class LectureItem implements Parcelable {
     private final String subjectName;
     private final boolean flipped;
     private int downloadPercent;
-    private boolean downloading;
+    private int downloadStatus;
     private final int viewPosition;
 
-    public void setDownloading(boolean downloading) {
-        this.downloading = downloading;
+    public void setDownloadStatus(int status) {
+        this.downloadStatus = status;
     }
 
-    public boolean isDownloading() {
-        return downloading;
+    public int getDownloadStatus() {
+        return downloadStatus;
     }
 
     public int getViewPosition() {
         return viewPosition;
+    }
+
+    public enum DownloadStatus {
+        NOT_STARTED,
+        STARTED,
+        IN_PROGRESS,
+        PROCESSING,
+        FAILED,
+        SUCCESS
     }
 
     public LectureItem(int id, int seqNo, String topic, String professorName, String date, int numTracks, int duration, String subjectName, boolean flipped, int viewPosition) {
@@ -43,7 +52,7 @@ public class LectureItem implements Parcelable {
 
         this.downloadPercent = 0;
 
-        this.downloading = false;
+        this.downloadStatus = DownloadStatus.NOT_STARTED.ordinal();
         this.viewPosition = viewPosition;
     }
 
@@ -110,7 +119,7 @@ public class LectureItem implements Parcelable {
         dest.writeString(subjectName);
         dest.writeString(Boolean.toString(flipped));
         dest.writeInt(downloadPercent);
-        dest.writeString(Boolean.toString(downloading));
+        dest.writeInt(downloadStatus);
         dest.writeInt(viewPosition);
     }
 
@@ -135,7 +144,7 @@ public class LectureItem implements Parcelable {
         subjectName = in.readString();
         flipped = Boolean.parseBoolean(in.readString());
         downloadPercent = in.readInt();
-        downloading = Boolean.getBoolean(in.readString());
+        downloadStatus = in.readInt();
         viewPosition = in.readInt();
     }
 }

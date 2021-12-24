@@ -28,10 +28,11 @@ public class DownloadService extends IntentService {
         //create url and connect
         Callable callback = new Callable() {
             @Override
-            public void call(int value) {
+            public void call(int value, int status) {
                 Bundle resultData = new Bundle();
                 resultData.putInt("position", item.getViewPosition());
                 resultData.putInt("value", value);
+                resultData.putInt("downloadStatus", status);
                 receiver.send(UPDATE_PROGRESS, resultData);
             }
         };

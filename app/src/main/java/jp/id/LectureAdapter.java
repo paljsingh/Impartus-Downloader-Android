@@ -60,28 +60,31 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
         }
     }
 
+    @SuppressLint("SetTextI18n")
     private void setProgressBarState(final LectureItem lectureItem, ViewHolder holder) {
-        File mkvFilePath = Utils.getMkvFilePath(lectureItem, impartus.getDownloadDir());
         int value;
+        String text;
         int visibility;
 
-        if (mkvFilePath.exists()) {
-            lectureItem.setDownloadPercent(100);
-        }
-
         // set visibility
-        if(lectureItem.getDownloadPercent() > 0 || lectureItem.isDownloading()) {
-            visibility = View.VISIBLE;
-        } else {
+        if(lectureItem.getDownloadStatus() == LectureItem.DownloadStatus.NOT_STARTED.ordinal()) {
             visibility = View.INVISIBLE;
+            value = lectureItem.getDownloadPercent();
+            text = String.format("%s%%", value);
+        } else if (lectureItem.getDownloadStatus() == LectureItem.DownloadStatus.FAILED.ordinal()){
+            visibility = View.VISIBLE;
+            value = 0;
+            text = "Failed";
+        } else {
+            visibility = View.VISIBLE;
+            value = lectureItem.getDownloadPercent();
+            text = String.format("%s%%", value);
         }
-
-        value = lectureItem.getDownloadPercent();
 
         holder.progressBar.setProgress(value);
         holder.progressBar.setVisibility(visibility);
 
-        holder.progressBarText.setText(String.format("%s%%", value));
+        holder.progressBarText.setText(text);
         holder.progressBarText.setVisibility(visibility);
     }
 
@@ -94,6 +97,10 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
         }
 
         LectureItem lectureItem = lectureItems.get(position);
+        if(Utils.getMkvFilePath(lectureItem, impartus.getDownloadDir()).exists()) {
+            lectureItem.setDownloadStatus(LectureItem.DownloadStatus.SUCCESS.ordinal());
+            lectureItem.setDownloadPercent(100);
+        }
         this.setProgressBarState(lectureItem, holder);
 
         holder.topic.setText(
@@ -121,10 +128,11 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
             final File mkvFilePath = Utils.getMkvFilePath(lectureItem, impartus.getDownloadDir());
 
             // disable download menu, if file is already downloaded or download in progress.
-            if (mkvFilePath.exists() || lectureItem.isDownloading()) {
-                popup.getMenu().getItem(DOWNLOAD_VIDEO).setEnabled(false);
-            } else {
+            if (lectureItem.getDownloadStatus() == LectureItem.DownloadStatus.NOT_STARTED.ordinal() ||
+                    lectureItem.getDownloadStatus() == LectureItem.DownloadStatus.FAILED.ordinal()) {
                 popup.getMenu().getItem(DOWNLOAD_VIDEO).setEnabled(true);
+            } else {
+                popup.getMenu().getItem(DOWNLOAD_VIDEO).setEnabled(false);
             }
 
             // enable play video if file is downloaded.
@@ -144,12 +152,13 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
                     if (downloadCounter > 1) {
                         AppLogs.info(tag, String.format("Download queued for %s", mkvFilePath.getAbsolutePath()));
                         Toast.makeText(view.getContext(), "Download Queued!", Toast.LENGTH_SHORT).show();
+                        lectureItem.setDownloadStatus(LectureItem.DownloadStatus.STARTED.ordinal());
                     } else {
                         AppLogs.info(tag, String.format("Starting download for %s", mkvFilePath.getAbsolutePath()));
                         Toast.makeText(view.getContext(), "Download Started...", Toast.LENGTH_SHORT).show();
+                        lectureItem.setDownloadStatus(LectureItem.DownloadStatus.IN_PROGRESS.ordinal());
                     }
 
-                    lectureItem.setDownloading(true);
                     lectureItem.setDownloadPercent(0);
 
                     setProgressBarState(lectureItem, holder);
@@ -245,16 +254,21 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
             if (resultCode == DownloadService.UPDATE_PROGRESS) {
                 int value = resultData.getInt("value");
                 int position = resultData.getInt("position");
+                int downloadStatus = resultData.getInt("downloadStatus");
                 LectureItem item = Lectures.getLectures().get(position);
                 item.setDownloadPercent(value);
+                item.setDownloadStatus(downloadStatus);
 
-                if (value == 100) {
-                    // no longer downloading, ensures Download/Play button states are appropriately set.
-                    item.setDownloading(false);
-
+                if (downloadStatus == LectureItem.DownloadStatus.SUCCESS.ordinal()) {
                     downloadCounter--;
                     downloadCounter = Math.max(0, downloadCounter);
                     Utils.saveDataKey(context, "numDownloads", String.valueOf(downloadCounter));
+                    Toast.makeText(context, "Downloaded complete!", Toast.LENGTH_SHORT).show();
+                } else if(downloadStatus == LectureItem.DownloadStatus.FAILED.ordinal()) {
+                    downloadCounter--;
+                    downloadCounter = Math.max(0, downloadCounter);
+                    Utils.saveDataKey(context, "numDownloads", String.valueOf(downloadCounter));
+                    Toast.makeText(context, "Downloaded failed, see logs for details!", Toast.LENGTH_LONG).show();
                 }
                 notifyItemChanged(position);
             }
