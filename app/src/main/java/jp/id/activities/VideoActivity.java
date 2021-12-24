@@ -30,6 +30,8 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import jp.id.ContextManager;
 import jp.id.LectureAdapter;
 import jp.id.R;
 import jp.id.SettingsFragment;
@@ -59,8 +61,11 @@ public class VideoActivity extends AppCompatActivity {
             StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
             StrictMode.setThreadPolicy(policy);
         }
+        ContextManager.setContext(this.getBaseContext());
+
         setContentView(R.layout.activity_video);
         RecyclerView mRecyclerView = findViewById(R.id.recyclerView);//set to whatever view id you use
+
 
         String baseUrl = Utils.getUrlFromPrefs(this);
         String sessionToken = Utils.getSessionTokenFromPrefs(this);
@@ -172,12 +177,12 @@ public class VideoActivity extends AppCompatActivity {
     }
 
     private void getAsyncLectures() {
-        Utils.savePrefsKey(this, "lastRefreshEpoch", String.valueOf(System.currentTimeMillis()));
+        Utils.savePrefsKey("lastRefreshEpoch", String.valueOf(System.currentTimeMillis()));
 
         AppLogs.info(tag, "Fetching lectures...");
         PopulateLectures asyncTask = new PopulateLectures();
         asyncTask.execute();
-        Utils.savePrefsKey(this, "lastPersistEpoch", String.valueOf(System.currentTimeMillis()));
+        Utils.savePrefsKey("lastPersistEpoch", String.valueOf(System.currentTimeMillis()));
     }
 
     protected void attachAdapter() {
@@ -264,13 +269,13 @@ public class VideoActivity extends AppCompatActivity {
             final List<SubjectItem> subjects = impartus.getSubjects();
 
             List<LectureItem> lectureItems = new ArrayList<>();
-            boolean fetchRegular = Utils.getPrefsKey(VideoActivity.this, "regular_videos", true);
+            boolean fetchRegular = Utils.getPrefsKey("regular_videos", true);
             if (fetchRegular) {
                 AppLogs.info(tag, "Fetching regular lectures");
                 lectureItems.addAll(impartus.getLectures(subjects));
             }
 
-            boolean fetchFlipped = Utils.getPrefsKey(VideoActivity.this, "flipped_videos", false);
+            boolean fetchFlipped = Utils.getPrefsKey("flipped_videos", false);
             if (fetchFlipped) {
                 AppLogs.info(tag, "Fetching flipped lectures");
                 lectureItems.addAll(impartus.getFlippedLectures(subjects));

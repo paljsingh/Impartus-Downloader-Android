@@ -147,7 +147,7 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
                 if (menuItem.getItemId() == R.id.download_video ) {
                     menuItem.setEnabled(false);
                     downloadCounter++;
-                    Utils.saveDataKey(view.getContext(), "numDownloads", String.valueOf(downloadCounter));
+                    Utils.saveDataKey("numDownloads", String.valueOf(downloadCounter));
 
                     if (downloadCounter > 1) {
                         AppLogs.info(tag, String.format("Download queued for %s", mkvFilePath.getAbsolutePath()));
@@ -231,8 +231,8 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
     private void serviceInit(final LectureItem item) {
         Intent intent = new Intent(this.context, DownloadService.class);
 
-        boolean debug = Utils.getPrefsKey(context, "debug", false);
-        String flippedVideoQuality = Utils.getPrefsKey(context, "video_quality", "highest");
+        boolean debug = Utils.getPrefsKey("debug", false);
+        String flippedVideoQuality = Utils.getPrefsKey("video_quality", "highest");
 
         intent.putExtra("impartus", impartus);
         intent.putExtra("lectureitem", item);
@@ -262,12 +262,12 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
                 if (downloadStatus == LectureItem.DownloadStatus.SUCCESS.ordinal()) {
                     downloadCounter--;
                     downloadCounter = Math.max(0, downloadCounter);
-                    Utils.saveDataKey(context, "numDownloads", String.valueOf(downloadCounter));
+                    Utils.saveDataKey("numDownloads", String.valueOf(downloadCounter));
                     Toast.makeText(context, "Downloaded complete!", Toast.LENGTH_SHORT).show();
                 } else if(downloadStatus == LectureItem.DownloadStatus.FAILED.ordinal()) {
                     downloadCounter--;
                     downloadCounter = Math.max(0, downloadCounter);
-                    Utils.saveDataKey(context, "numDownloads", String.valueOf(downloadCounter));
+                    Utils.saveDataKey("numDownloads", String.valueOf(downloadCounter));
                     Toast.makeText(context, "Downloaded failed, see logs for details!", Toast.LENGTH_LONG).show();
                 }
                 notifyItemChanged(position);

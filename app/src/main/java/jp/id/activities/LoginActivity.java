@@ -9,6 +9,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import jp.id.ContextManager;
 import jp.id.R;
 import jp.id.core.Impartus;
 import jp.id.core.Utils;
@@ -28,6 +29,7 @@ public class LoginActivity extends AppCompatActivity {
                     .permitAll().build();
             StrictMode.setThreadPolicy(policy);
         }
+        ContextManager.setContext(this.getBaseContext());
         setContentView(R.layout.activity_login);
 
         refreshDataIfRequired();
@@ -45,10 +47,10 @@ public class LoginActivity extends AppCompatActivity {
         final int currentVersion = BuildConfig.VERSION_CODE;
         final int savedVersion = Integer.parseInt(Utils.getDataKey(this, "version", "0"));
         if (savedVersion < currentVersion) {
-            Utils.deleteDataKeys(this);
+            Utils.deleteDataKeys();
         }
 
-        Utils.setDefaultDataKeys(this);
+        Utils.setDefaultDataKeys();
 
     }
 

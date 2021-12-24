@@ -16,6 +16,7 @@ import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import jp.id.BuildConfig;
+import jp.id.ContextManager;
 import jp.id.model.AppLogs;
 import jp.id.model.LectureItem;
 
@@ -107,13 +108,12 @@ public class Utils {
         editor.apply();
     }
 
-    public static void saveDataKey(final Context context, final String key, final String value) {
-        SharedPreferences prefs = context.getSharedPreferences("data", Context.MODE_PRIVATE);
+    public static void saveDataKey(final String key, final String value) {
+        SharedPreferences prefs = ContextManager.getContext().getSharedPreferences("data", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString(key, value);
         editor.apply();
     }
-
 
     /* session prefs */
     public static String getUrlFromPrefs(final Activity activity) {
@@ -145,23 +145,23 @@ public class Utils {
     }
 
     /* settings/prefs */
-    public static void savePrefsKey(final Context context, final String key, final String value) {
-        SharedPreferences prefs = context.getSharedPreferences("jp.id_preferences", Context.MODE_PRIVATE);
+    public static void savePrefsKey(final String key, final String value) {
+        SharedPreferences prefs = ContextManager.getContext().getSharedPreferences("jp.id_preferences", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString(key, value);
         editor.apply();
     }
 
-    public static String getPrefsKey(final Context context, final String key, final String defaultValue) {
-        return PreferenceManager.getDefaultSharedPreferences(context).getString(key, defaultValue);
+    public static String getPrefsKey(final String key, final String defaultValue) {
+        return PreferenceManager.getDefaultSharedPreferences(ContextManager.getContext()).getString(key, defaultValue);
     }
 
-    public static boolean getPrefsKey(final Context context, final String key, final boolean defaultValue) {
-        return PreferenceManager.getDefaultSharedPreferences(context).getBoolean(key, defaultValue);
+    public static boolean getPrefsKey(final String key, final boolean defaultValue) {
+        return PreferenceManager.getDefaultSharedPreferences(ContextManager.getContext()).getBoolean(key, defaultValue);
     }
 
-    public static void deleteDataKeys(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences("data", Context.MODE_PRIVATE);
+    public static void deleteDataKeys() {
+        SharedPreferences prefs = ContextManager.getContext().getSharedPreferences("data", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         for(String key: prefs.getAll().keySet()) {
             editor.remove(key);
@@ -169,8 +169,8 @@ public class Utils {
         editor.apply();
     }
 
-    public static void setDefaultDataKeys(Context context) {
-        SharedPreferences prefs = context.getSharedPreferences("data", Context.MODE_PRIVATE);
+    public static void setDefaultDataKeys() {
+        SharedPreferences prefs = ContextManager.getContext().getSharedPreferences("data", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString("version", String.valueOf(BuildConfig.VERSION_CODE));
         editor.apply();
