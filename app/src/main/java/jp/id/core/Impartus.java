@@ -57,10 +57,10 @@ public class Impartus implements Parcelable {
 
     private OkHttpClient getClient() {
         return new OkHttpClient.Builder()
-                .callTimeout(10, TimeUnit.SECONDS)
+                .callTimeout(70, TimeUnit.SECONDS)
                 .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .writeTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS)
+                .writeTimeout(60, TimeUnit.SECONDS)
                 .build();
     }
 
