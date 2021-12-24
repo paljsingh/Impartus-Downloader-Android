@@ -30,6 +30,15 @@
             android:defaultValue="highest"
             android:entries="@array/video_quality_keys"
             android:entryValues="@array/video_quality_values" />
+
+        <ListPreference
+            android:icon="@drawable/retry"
+            android:title="Retry Count"
+            android:summary="Number of times to retry before giving up."
+            android:key="retry_count"
+            android:defaultValue="5"
+            android:entries="@array/retry_counts"
+            android:entryValues="@array/retry_counts" />
     </PreferenceCategory>
 
     <PreferenceCategory>
