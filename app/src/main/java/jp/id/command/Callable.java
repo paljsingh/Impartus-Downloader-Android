@@ -1,5 +1,5 @@
 package jp.id.command;
 
 public interface Callable {
-    void call(int value);
+    void call(int value, int status);
 }

@@ -4,7 +4,6 @@ import android.os.Environment;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Base64;
-import android.widget.Toast;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -416,6 +415,7 @@ public class Impartus implements Parcelable {
                 return;
             }
 
+            task.call(0, LectureItem.DownloadStatus.IN_PROGRESS.ordinal());
             for (Track track : tracks) {
 
                 List<File> tsFiles = new ArrayList<>();
@@ -424,6 +424,10 @@ public class Impartus implements Parcelable {
 
                     // download encrypted stream..
                     File encStreamFilepath = writeStreamToFile(stream, tempDir);
+                    if(encStreamFilepath == null) {
+                        task.call(0, LectureItem.DownloadStatus.FAILED.ordinal());
+                        return;
+                    }
                     filesToDelete.add(encStreamFilepath);
 
                     // decrypt stream file if encrypted.
@@ -451,11 +455,7 @@ public class Impartus implements Parcelable {
                     // update ui only when necessary
                     if (itemsProcessedPercent > item.getDownloadPercent()) {
                         item.setDownloadPercent(itemsProcessedPercent);
-                        task.call(itemsProcessedPercent);
-                    }
-
-                    if (itemsProcessed == mediaFilesCount) {
-                        item.setDownloading(false);
+                        task.call(itemsProcessedPercent, LectureItem.DownloadStatus.IN_PROGRESS.ordinal());
                     }
                 }   // for each videoStream
 
@@ -466,6 +466,7 @@ public class Impartus implements Parcelable {
                 trackFiles.add(trackFile);
                 filesToDelete.add(trackFile);
             }   // for track in tracks
+            task.call(100, LectureItem.DownloadStatus.PROCESSING.ordinal());
 
             // Get output file path, create any directories required.
             File mkvDirPath = mkvFilePath.getParentFile();
@@ -481,9 +482,11 @@ public class Impartus implements Parcelable {
             boolean encodeSuccess = Encoder.encodeMkv(item, trackFiles, mkvFilePath.getAbsolutePath(), debug);
 
             if (encodeSuccess) {
+                task.call(100, LectureItem.DownloadStatus.SUCCESS.ordinal());
                 AppLogs.info(tag, String.format("[%s]: Processed %s", item.getId(), mkvFilePath));
                 AppLogs.info(tag, "---");
             } else {
+                task.call(0, LectureItem.DownloadStatus.FAILED.ordinal());
                 AppLogs.error(tag, "ERROR: processing video.");
             }
 
@@ -497,6 +500,8 @@ public class Impartus implements Parcelable {
                     }
                 }
             }
+        } else {
+            task.call(0, LectureItem.DownloadStatus.FAILED.ordinal());
         }
     }
 
@@ -550,6 +555,7 @@ public class Impartus implements Parcelable {
             } catch (IOException e) {
                 AppLogs.error(tag, String.format("Error while writing stream to file: %s", e.getMessage()));
                 e.printStackTrace();
+                return null;
             }
         }
         return encStreamFilepath;
