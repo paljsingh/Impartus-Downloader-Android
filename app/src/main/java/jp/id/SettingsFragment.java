@@ -2,16 +2,10 @@ package jp.id;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
-import androidx.fragment.app.FragmentManager;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
-
-import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.util.Objects;
@@ -37,54 +31,35 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         String[] keys = {"clear_data", "logout", "settings"};
         for(String key: keys) {
             Preference preferenceMap = findPreference(key);
-            if (key.equals("clear_data")) {
-                preferenceMap.setOnPreferenceClickListener(
-                        new Preference.OnPreferenceClickListener() {
-                            @Override
-                            public boolean onPreferenceClick(Preference arg0) {
+            switch (key) {
+                case "clear_data":
+                    assert preferenceMap != null;
+                    preferenceMap.setOnPreferenceClickListener(
+                            arg0 -> {
                                 deleteCache();
                                 return true;
-                            }
-                        });
-            } else if(key.equals("logout")) {
-                preferenceMap.setOnPreferenceClickListener(
-                        new Preference.OnPreferenceClickListener() {
-                            @Override
-                            public boolean onPreferenceClick(Preference arg0) {
+                            });
+                    break;
+                case "logout":
+                    assert preferenceMap != null;
+                    preferenceMap.setOnPreferenceClickListener(
+                            arg0 -> {
                                 logout();
                                 return true;
-                            }
-                        });
-            } else if(key.equals("settings")) {
-                preferenceMap.setOnPreferenceClickListener(
-                        new Preference.OnPreferenceClickListener() {
-                            @Override
-                            public boolean onPreferenceClick(Preference arg0) {
-//                                onBackPressed();
+                            });
+                    break;
+                case "settings":
+                    assert preferenceMap != null;
+                    preferenceMap.setOnPreferenceClickListener(
+                            arg0 -> {
                                 Intent intent = new Intent(getContext(), VideoActivity.class);
-                                getActivity().finish();
+                                requireActivity().finish();
                                 startActivity(intent);
                                 return true;
-                            }
-                        });
+                            });
+                    break;
             }
         }
-    }
-
-    private void onBackPressed() {
-        FragmentManager mFragmentManager = getActivity().getSupportFragmentManager();
-        int fragments = mFragmentManager.getBackStackEntryCount();
-        if (fragments == 1) {
-            getActivity().finish();
-        } else if (getFragmentManager().getBackStackEntryCount() > 1) {
-            getFragmentManager().popBackStack();
-        } else {
-            getActivity().onBackPressed();
-        }
-    }
-
-    private void selectedOutputFolder() {
-        Toast.makeText(this.getContext(), "selected output folder...", Toast.LENGTH_LONG).show();
     }
 
     private void logout() {
