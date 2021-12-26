@@ -45,7 +45,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private void refreshDataIfRequired() {
         final int currentVersion = BuildConfig.VERSION_CODE;
-        final int savedVersion = Integer.parseInt(Utils.getDataKey(this, "version", "0"));
+        final int savedVersion = Integer.parseInt(Utils.getDataKey("version", "0"));
         if (savedVersion < currentVersion) {
             Utils.deleteDataKeys();
         }
@@ -53,7 +53,6 @@ public class LoginActivity extends AppCompatActivity {
         Utils.setDefaultDataKeys();
 
     }
-
 
     public void launchVideoActivity() {
         Intent intent = new Intent(LoginActivity.this, VideoActivity.class);

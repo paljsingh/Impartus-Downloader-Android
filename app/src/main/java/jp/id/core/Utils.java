@@ -1,8 +1,16 @@
 package jp.id.core;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.MediaStore;
+
+import androidx.documentfile.provider.DocumentFile;
 import androidx.preference.PreferenceManager;
 
 import java.io.File;
@@ -10,7 +18,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.arthenica.ffmpegkit.FFmpegKit;
-import com.arthenica.ffmpegkit.FFmpegSession;
+import com.arthenica.ffmpegkit.Log;
+import com.arthenica.ffmpegkit.Session;
 
 import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -24,21 +33,58 @@ public class Utils {
 
     public static final String tag = "Utils";
 
-    public static void runFfmpeg(List<String> args) {
+    public static Session runFfmpeg(List<String> args) {
         String[] argsArray = args.toArray(new String[0]);
-        FFmpegSession session = FFmpegKit.execute(argsArray);
-
+        return FFmpegKit.execute(argsArray);
     }
 
     public static String sanitize(String str) {
         return RegExUtils.replaceAll(str, "[^0-9a-zA-Z_\\.-]", "");
     }
 
-    public static File getMkvFilePath(LectureItem item, File downloadDir) {
-        String mkvFileName = sanitize(String.format("%s-%s-%s.mkv", item.getSeqNo(), item.getTopic(), item.getDate()));
-        String mkvDirPath = String.format("%s/%s", downloadDir, sanitize(item.getSubjectName()));
+    public static String getMkvFileName(final LectureItem item) {
+        return sanitize(String.format("%s-%s-%s.mkv", item.getSeqNo(), item.getTopic(), item.getDate()));
+    }
 
-        return new File(String.format("%s/%s", mkvDirPath, mkvFileName));
+    public static String getMkvSubject(final LectureItem item) {
+        return sanitize(item.getSubjectName());
+    }
+
+    public static ContentValues getMkvContentValues(final LectureItem item) {
+        final String mkvFileName = getMkvFileName(item);
+        final String subjectName = getMkvSubject(item);
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(MediaStore.Video.Media.CATEGORY, subjectName);
+        contentValues.put(MediaStore.Video.Media.DISPLAY_NAME, mkvFileName);
+        contentValues.put(MediaStore.Video.Media.MIME_TYPE, "video/x-matroska");
+        return contentValues;
+    }
+    public static Uri getMkvUri(final LectureItem item) {
+        ContentResolver resolver = ContextManager.getContext().getContentResolver();
+        String[] columns = new String[]{MediaStore.MediaColumns._ID, MediaStore.Video.Media.DISPLAY_NAME};
+        String criteria = MediaStore.Video.Media.DISPLAY_NAME + "= ?" + " and "
+                + MediaStore.Video.Media.CATEGORY + "= ?";
+        String[] params = new String[] {getMkvFileName(item), getMkvSubject(item)};
+
+        Cursor cursor = resolver.query(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, columns, criteria, params, null);
+        if(cursor != null && cursor.moveToFirst()) {
+            @SuppressLint("Range")
+            int id = cursor.getInt(cursor.getColumnIndex(MediaStore.MediaColumns._ID));
+            cursor.close();
+            return Uri.withAppendedPath(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, "" + id);
+        } else {
+            return null;
+        }
+    }
+
+    public static boolean mkvExists(LectureItem item) {
+        // the item should exist in db, and on disk.
+        Uri uri = getMkvUri(item);
+        if(uri == null) {
+            return false;
+        }
+        DocumentFile file = DocumentFile.fromSingleUri(ContextManager.getContext(), uri);
+        return file != null && file.exists();
     }
 
     public static String truncateTo(final String str, final int truncateLen) {
@@ -97,15 +143,8 @@ public class Utils {
         return null;
     }
 
-    public static String getDataKey(final Activity activity, final String key, final String defaultValue) {
-        return activity.getSharedPreferences("data", Context.MODE_PRIVATE).getString(key, defaultValue);
-    }
-
-    public static void saveDataKey(final Activity activity, final String key, final String value) {
-        SharedPreferences prefs = activity.getSharedPreferences("data", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putString(key, value);
-        editor.apply();
+    public static String getDataKey(final String key, final String defaultValue) {
+        return ContextManager.getContext().getSharedPreferences("data", Context.MODE_PRIVATE).getString(key, defaultValue);
     }
 
     public static void saveDataKey(final String key, final String value) {
@@ -174,6 +213,13 @@ public class Utils {
         SharedPreferences.Editor editor = prefs.edit();
         editor.putString("version", String.valueOf(BuildConfig.VERSION_CODE));
         editor.apply();
+    }
+
+    public static void collectLogs(List<Log> logs, final int lastN) {
+        int start = Math.max(0, logs.size()-lastN);
+        for(int j=start; j<logs.size(); j++) {
+            AppLogs.debug(tag, logs.get(j).getMessage());
+        }
     }
 
 }

@@ -21,7 +21,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import org.apache.commons.text.WordUtils;
 
-import java.io.File;
 import java.util.List;
 
 import jp.id.core.Impartus;
@@ -97,7 +96,8 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
         }
 
         LectureItem lectureItem = lectureItems.get(position);
-        if(Utils.getMkvFilePath(lectureItem, impartus.getDownloadDir()).exists()) {
+
+        if(Utils.mkvExists(lectureItem)) {
             lectureItem.setDownloadStatus(LectureItem.DownloadStatus.SUCCESS.ordinal());
             lectureItem.setDownloadPercent(100);
         }
@@ -125,7 +125,6 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
 
             //inflating menu from xml resource
             popup.inflate(R.menu.context_menu);
-            final File mkvFilePath = Utils.getMkvFilePath(lectureItem, impartus.getDownloadDir());
 
             // disable download menu, if file is already downloaded or download in progress.
             if (lectureItem.getDownloadStatus() == LectureItem.DownloadStatus.NOT_STARTED.ordinal() ||
@@ -136,7 +135,7 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
             }
 
             // enable play video if file is downloaded.
-            if (mkvFilePath.exists()) {
+            if (Utils.mkvExists(lectureItem)) {
                 popup.getMenu().getItem(PLAY_VIDEO).setEnabled(true);
             } else {
                 popup.getMenu().getItem(PLAY_VIDEO).setEnabled(false);
@@ -150,11 +149,11 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
                     Utils.saveDataKey("numDownloads", String.valueOf(downloadCounter));
 
                     if (downloadCounter > 1) {
-                        AppLogs.info(tag, String.format("Download queued for %s", mkvFilePath.getAbsolutePath()));
+                        AppLogs.info(tag, String.format("Download queued for %s", Utils.getMkvFileName(lectureItem)));
                         Toast.makeText(view.getContext(), "Download Queued!", Toast.LENGTH_SHORT).show();
                         lectureItem.setDownloadStatus(LectureItem.DownloadStatus.STARTED.ordinal());
                     } else {
-                        AppLogs.info(tag, String.format("Starting download for %s", mkvFilePath.getAbsolutePath()));
+                        AppLogs.info(tag, String.format("Starting download for %s", Utils.getMkvFileName(lectureItem)));
                         Toast.makeText(view.getContext(), "Download Started...", Toast.LENGTH_SHORT).show();
                         lectureItem.setDownloadStatus(LectureItem.DownloadStatus.IN_PROGRESS.ordinal());
                     }
@@ -166,13 +165,14 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
                     serviceInit(lectureItem);
                     return true;
                 } else if(menuItem.getItemId() == R.id.play_video) {
-                    if (mkvFilePath.exists()) {
-                        final String msg = String.format("Playing video %s", mkvFilePath.getAbsolutePath());
+                    if (Utils.mkvExists(lectureItem)) {
+                        final String msg = String.format("Playing video %s", Utils.getMkvFileName(lectureItem));
                         AppLogs.info(tag, msg);
                         Toast.makeText(view.getContext(), msg, Toast.LENGTH_LONG).show();
                         try {
-                            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(mkvFilePath.getAbsolutePath()));
-                            intent.setDataAndType(Uri.parse(mkvFilePath.getAbsolutePath()), "video/mp4");
+                            Uri uri = Utils.getMkvUri(lectureItem);
+                            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                            intent.setDataAndType(uri, "video/x-matroska");
                             view.getContext().startActivity(intent);
                         } catch (ActivityNotFoundException e) {
                             e.printStackTrace();

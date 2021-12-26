@@ -1,6 +1,5 @@
 package jp.id.core;
 
-import android.os.Environment;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Base64;
@@ -37,7 +36,6 @@ public class Impartus implements Parcelable {
     private String sessionToken = null;
     private final String baseUrl;
     private final File cacheDir;
-    private final File downloadDir;
     private OkHttpClient client;
 
     public static final String tag = "Impartus";
@@ -45,7 +43,6 @@ public class Impartus implements Parcelable {
     public Impartus(final String baseUrl, final File cacheDir) {
         this.baseUrl = baseUrl;
         this.cacheDir = cacheDir;
-        this.downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES);
         this.client = getClient();
     }
 
@@ -64,10 +61,6 @@ public class Impartus implements Parcelable {
                 .build();
     }
 
-    public File getDownloadDir() {
-        return downloadDir;
-    }
-
     @Override
     public int describeContents() {
         return 0;
@@ -78,7 +71,6 @@ public class Impartus implements Parcelable {
         dest.writeString(sessionToken);
         dest.writeString(baseUrl);
         dest.writeString(cacheDir.getAbsolutePath());
-        dest.writeString(downloadDir.getAbsolutePath());
     }
 
     public static final Parcelable.Creator<Impartus> CREATOR = new Parcelable.Creator<Impartus>() {
@@ -95,7 +87,6 @@ public class Impartus implements Parcelable {
         sessionToken = in.readString();
         baseUrl = in.readString();
         cacheDir = new File(in.readString());
-        downloadDir = new File(in.readString());
         client = getClient();
     }
 
@@ -140,7 +131,7 @@ public class Impartus implements Parcelable {
         }
         Request request = builder.build();
 
-        int maxRetries = Integer.parseInt(Utils.getPrefsKey("retry_count", "5"));;
+        int maxRetries = Integer.parseInt(Utils.getPrefsKey("retry_count", "5"));
         int retryCount = 0;
         while(true) {
             try {
@@ -389,8 +380,7 @@ public class Impartus implements Parcelable {
                                    final String flippedVideoQuality, final boolean debug) {
         // Encode all ts files into a single output mkv.
 
-        File mkvFilePath = Utils.getMkvFilePath(item, downloadDir);
-        if (mkvFilePath.exists()) {
+        if (Utils.mkvExists(item)) {
             return;
         }
 
@@ -471,22 +461,12 @@ public class Impartus implements Parcelable {
             }   // for track in tracks
             task.call(100, LectureItem.DownloadStatus.PROCESSING.ordinal());
 
-            // Get output file path, create any directories required.
-            File mkvDirPath = mkvFilePath.getParentFile();
-            if (mkvDirPath != null && ! mkvDirPath.exists()) {
-                boolean flag = mkvDirPath.mkdir();
-                if (!flag) {
-                    AppLogs.error(tag, String.format("Error creating directory %s", mkvDirPath));
-                    return;
-                }
-            }
-
             // encode mkv.
-            boolean encodeSuccess = Encoder.encodeMkv(item, trackFiles, mkvFilePath.getAbsolutePath(), debug);
+            boolean encodeSuccess = Encoder.encodeMkv(item, trackFiles, debug);
 
             if (encodeSuccess) {
                 task.call(100, LectureItem.DownloadStatus.SUCCESS.ordinal());
-                AppLogs.info(tag, String.format("[%s]: Processed %s", item.getId(), mkvFilePath));
+                AppLogs.info(tag, String.format("[%s]: Processed %s", item.getId(), Utils.getMkvFileName(item)));
                 AppLogs.info(tag, "---");
             } else {
                 task.call(0, LectureItem.DownloadStatus.FAILED.ordinal());

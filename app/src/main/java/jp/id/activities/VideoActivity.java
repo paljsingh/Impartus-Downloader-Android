@@ -18,6 +18,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.StrictMode;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -46,7 +47,7 @@ public class VideoActivity extends AppCompatActivity {
 
     private Impartus impartus;
     private SwipeRefreshLayout swipeContainer;
-    private static final int REQUEST_WRITE_STORAGE = 112;
+    private static final int REQUEST_WRITE_STORAGE = 101;
 
     @SuppressLint("StaticFieldLeak")
     private static LectureAdapter lectureAdapter = null;
@@ -56,16 +57,31 @@ public class VideoActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        ContextManager.setContext(this.getBaseContext());
+
         int SDK_INT = Build.VERSION.SDK_INT;
         if (SDK_INT > 8) {
             StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
             StrictMode.setThreadPolicy(policy);
         }
+        if (Build.VERSION.SDK_INT <=28 && !hasStoragePermission()) {
+            Log.i(tag, "requesting storage permission: %s");
+            requestStoragePermission();
+        } else {
+            setContent();
+        }
+    }
+
+    private void setContent() {
         ContextManager.setContext(this.getBaseContext());
 
         setContentView(R.layout.activity_video);
         RecyclerView mRecyclerView = findViewById(R.id.recyclerView);//set to whatever view id you use
 
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        assert toolbar != null;
+        setSupportActionBar(toolbar);
+        Objects.requireNonNull(getSupportActionBar()).setDisplayShowTitleEnabled(false);
 
         String baseUrl = Utils.getUrlFromPrefs(this);
         String sessionToken = Utils.getSessionTokenFromPrefs(this);
@@ -74,18 +90,8 @@ public class VideoActivity extends AppCompatActivity {
         swipeContainer = findViewById(R.id.swipeContainer);
         swipeContainer.setOnRefreshListener(() -> fetchAsyncLecturesIfNeeded(true));
 
-
         fetchAsyncLecturesIfNeeded(false);
         attachAdapter();
-
-        if (!hasStoragePermission()) {
-            requestStoragePermission();
-        }
-
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        assert toolbar != null;
-        setSupportActionBar(toolbar);
-        Objects.requireNonNull(getSupportActionBar()).setDisplayShowTitleEnabled(false);
     }
 
     private void fetchAsyncLecturesIfNeeded(final boolean forceRefresh) {
@@ -93,18 +99,18 @@ public class VideoActivity extends AppCompatActivity {
             AppLogs.info(tag, "Fetching new data from impartus site.");
             getAsyncLectures();
         } else {
-            String jsonArray = Utils.getDataKey(this, "lectureitems", "[]");
+            String jsonArray = Utils.getDataKey("lectureitems", "[]");
             Type listType = new TypeToken<ArrayList<LectureItem>>() {}.getType();
             List<LectureItem> items = new Gson().fromJson(jsonArray, listType);
             reconcile(items);
             Lectures.setLectures(items);
-            Utils.saveDataKey(this, "lectureitems", new Gson().toJson(items));
+            Utils.saveDataKey("lectureitems", new Gson().toJson(items));
         }
     }
 
     private void reconcile(List<LectureItem> items) {
         for(LectureItem item: items) {
-            if (Utils.getMkvFilePath(item, impartus.getDownloadDir()).exists()) {
+            if (Utils.mkvExists(item)) {
                 item.setDownloadPercent(100);
             } else {
                 item.setDownloadPercent(0);
@@ -112,32 +118,34 @@ public class VideoActivity extends AppCompatActivity {
         }
     }
 
+    private boolean hasStoragePermission() {
+        return (ContextCompat.checkSelfPermission(this,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED);
+    }
+
+    private void requestStoragePermission() {
+        this.requestPermissions(
+            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+            REQUEST_WRITE_STORAGE);
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_WRITE_STORAGE) {
             if (! (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                Toast.makeText(this, "The app was not allowed to write to your storage." +
-                        " Hence, it cannot function properly. Please consider granting it this permission",
-                        Toast.LENGTH_LONG).show();
-                AppLogs.error(tag, "User denied storage permission!");
+                noStoragePermissionToast();
             }
-        }
-    }
-
-    private boolean hasStoragePermission() {
-        if (Build.VERSION.SDK_INT <= 28) {
-            return (ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED);
         } else {
-            return true;
+            setContent();
         }
     }
 
-    private void requestStoragePermission() {
-            this.requestPermissions(
-                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    REQUEST_WRITE_STORAGE);
+    private void noStoragePermissionToast() {
+        Toast.makeText(this, "The app was not allowed to write to your storage." +
+                        " Hence, it cannot function properly. Please consider granting it this permission",
+                Toast.LENGTH_LONG).show();
+        AppLogs.error(tag, "User denied storage permission!");
     }
 
     private void persistData(List<LectureItem> items) {
@@ -162,9 +170,9 @@ public class VideoActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("data", MODE_PRIVATE);
         String jsonArray = prefs.getString("lectureitems", null);
 
-        long lastPersistEpoch = Long.parseLong(Utils.getDataKey(this,"lastPersistEpoch","0"));
-        long lastRefreshEpoch = Long.parseLong(Utils.getDataKey(this,"lastRefreshEpoch","0"));
-        boolean downloadsInProgress = Long.parseLong(Utils.getDataKey(this, "numDownloads", "0")) > 0;
+        long lastPersistEpoch = Long.parseLong(Utils.getDataKey("lastPersistEpoch","0"));
+        long lastRefreshEpoch = Long.parseLong(Utils.getDataKey("lastRefreshEpoch","0"));
+        boolean downloadsInProgress = Long.parseLong(Utils.getDataKey("numDownloads", "0")) > 0;
 
         boolean dataPersisted = jsonArray != null;
         boolean dataIsStale = System.currentTimeMillis() - lastPersistEpoch <= staleThreshold;

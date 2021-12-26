@@ -1,11 +1,20 @@
 package jp.id.core;
 
+import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.net.Uri;
+import android.provider.MediaStore;
+
+import com.arthenica.ffmpegkit.FFmpegKitConfig;
+import com.arthenica.ffmpegkit.Session;
+
 import org.apache.commons.io.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import jp.id.ContextManager;
 import jp.id.model.AppLogs;
 import jp.id.model.LectureItem;
 
@@ -51,7 +60,8 @@ public class Encoder {
             commandArgs.add(String.valueOf(duration));
             commandArgs.add(trackFiles.get(i).getAbsolutePath());
 
-            Utils.runFfmpeg(commandArgs);
+            Session session = Utils.runFfmpeg(commandArgs);
+            Utils.collectLogs(session.getAllLogs(), 20);
         }
 
         // trim ts_file 0, so that it contains only track 0 content
@@ -69,12 +79,13 @@ public class Encoder {
         commandArgs.add("-t");
         commandArgs.add(String.valueOf(duration));
         commandArgs.add(tmpFilePath);
-        Utils.runFfmpeg(commandArgs);
+        Session session = Utils.runFfmpeg(commandArgs);
+        Utils.collectLogs(session.getAllLogs(), 20);
 
         return new File(tmpFilePath).renameTo(trackFiles.get(0).getAbsoluteFile());
     }
 
-    public static boolean encodeMkv(final LectureItem item, final List<File> trackFiles, final String mkvFilePath, final boolean debug) {
+    public static boolean encodeMkv(final LectureItem item, final List<File> trackFiles, final boolean debug) {
         // probe size is needed to lookup timestamp info in files where multiple tracks are
         // joined in a single channel and possibly with incorrect timestamps.
         String probeSize = "2147483647";
@@ -140,9 +151,21 @@ public class Encoder {
             commandArgs.add("copy");
 
             commandArgs.addAll(mapArgs);
-            commandArgs.add(mkvFilePath);
 
-            Utils.runFfmpeg(commandArgs);
+            ContentResolver resolver = ContextManager.getContext().getContentResolver();
+            if(Utils.mkvExists(item)) {
+                // this section should not be reached.
+                AppLogs.error(tag, "mkv already exists?");
+                return false;
+            }
+            ContentValues contentValues = Utils.getMkvContentValues(item);
+            Uri outUri = resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues);
+            String outpath = FFmpegKitConfig.getSafParameterForWrite(ContextManager.getContext(), outUri);
+            commandArgs.add(outpath);
+
+            Session session = Utils.runFfmpeg(commandArgs);
+            Utils.collectLogs(session.getAllLogs(), 20);
+
         } catch (Exception ex) {
             AppLogs.error(tag, String.format("[%s]: ffmpeg exception: %s", item.getId(), ex));
             String filename = trackFiles.get(0) != null ? trackFiles.get(0).getName() : "null";
