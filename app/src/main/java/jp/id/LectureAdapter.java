@@ -116,6 +116,8 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
         holder.date.setText(lectureItem.getDate());
         holder.flipped.setText(String.format("Flipped: %s", lectureItem.isFlipped() ? "Y" : "N"));
 
+        holder.viewPosition.setText(String.format("[ %s ]", String.valueOf(lectureItem.getViewPosition()+1)));
+
         // create options menu...
         holder.contextMenuButton.setOnClickListener(view -> {
             //creating a popup menu
@@ -145,8 +147,7 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
             popup.setOnMenuItemClickListener(menuItem -> {
                 if (menuItem.getItemId() == R.id.download_video ) {
                     menuItem.setEnabled(false);
-                    downloadCounter++;
-                    Utils.saveDataKey("numDownloads", String.valueOf(downloadCounter));
+                    Lectures.incrementDownloads();
 
                     if (downloadCounter > 1) {
                         AppLogs.info(tag, String.format("Download queued for %s", Utils.getMkvFileName(lectureItem)));
@@ -208,6 +209,7 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
         private final TextView progressBarText;
         private final TextView contextMenuButton;
         private final TextView flipped;
+        private final TextView viewPosition;
 
         public ViewHolder(View view) {
             super(view);
@@ -222,6 +224,7 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
             this.progressBarText = view.findViewById(R.id.progressBarText);
             this.contextMenuButton = view.findViewById(R.id.contextMenuButton);
             this.flipped = view.findViewById(R.id.flipped);
+            this.viewPosition = view.findViewById(R.id.view_position);
         }
 
         public void setPopupMenu() {
@@ -260,14 +263,10 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
                 item.setDownloadStatus(downloadStatus);
 
                 if (downloadStatus == LectureItem.DownloadStatus.SUCCESS.ordinal()) {
-                    downloadCounter--;
-                    downloadCounter = Math.max(0, downloadCounter);
-                    Utils.saveDataKey("numDownloads", String.valueOf(downloadCounter));
-                    Toast.makeText(context, "Downloaded complete!", Toast.LENGTH_SHORT).show();
+                    Lectures.decrementDownloads();
+                    Toast.makeText(context, "Download complete!", Toast.LENGTH_SHORT).show();
                 } else if(downloadStatus == LectureItem.DownloadStatus.FAILED.ordinal()) {
-                    downloadCounter--;
-                    downloadCounter = Math.max(0, downloadCounter);
-                    Utils.saveDataKey("numDownloads", String.valueOf(downloadCounter));
+                    Lectures.decrementDownloads();
                     Toast.makeText(context, "Downloaded failed, see logs for details!", Toast.LENGTH_LONG).show();
                 }
                 notifyItemChanged(position);
