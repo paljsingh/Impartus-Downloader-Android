@@ -15,6 +15,7 @@
         <item>1280xHD</item>
         <item>800xHigh</item>
         <item>600xMedium</item>
+        <item>400xLow</item>
         <item>lowest</item>
     </string-array>
 
