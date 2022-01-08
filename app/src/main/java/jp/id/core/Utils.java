@@ -8,9 +8,9 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.MediaStore;
 
-import androidx.documentfile.provider.DocumentFile;
 import androidx.preference.PreferenceManager;
 
 import java.io.File;
@@ -50,13 +50,45 @@ public class Utils {
         return sanitize(item.getSubjectName());
     }
 
+    @Deprecated
+    public static File getMkvFilePath(LectureItem item, File downloadDir) {
+        if (Build.VERSION.SDK_INT <= 28) {
+            String mkvFileName = sanitize(String.format("%s-%s-%s.mkv", item.getSeqNo(), item.getTopic(), item.getDate()));
+            String mkvDirPath = String.format("%s/%s", downloadDir, sanitize(item.getSubjectName()));
+            return new File(String.format("%s/%s", mkvDirPath, mkvFileName));
+        } else {
+            AppLogs.error(tag, String.format("getMkvFilePath called for SDK version: %s", Build.VERSION.SDK_INT));
+            return null;
+        }
+    }
+
+    public static Uri queryOrInsert(LectureItem item) {
+        Uri uri = getMkvUri(item);
+        if(uri != null) {
+            return uri;
+        } else {
+            ContentResolver resolver = ContextManager.getContext().getContentResolver();
+            ContentValues contentValues = Utils.getMkvContentValues(item);
+            return resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues);
+        }
+    }
+
     public static ContentValues getMkvContentValues(final LectureItem item) {
         final String mkvFileName = getMkvFileName(item);
         final String subjectName = getMkvSubject(item);
         ContentValues contentValues = new ContentValues();
         contentValues.put(MediaStore.Video.Media.CATEGORY, subjectName);
+        contentValues.put(MediaStore.Video.Media.TITLE, mkvFileName);
         contentValues.put(MediaStore.Video.Media.DISPLAY_NAME, mkvFileName);
         contentValues.put(MediaStore.Video.Media.MIME_TYPE, "video/x-matroska");
+        String tags = item.isFlipped()
+                ? String.format("FCID=%s", item.getId())
+                : String.format("TTID=%s", item.getId());
+        contentValues.put(MediaStore.Video.Media.TAGS, tags);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            contentValues.put(MediaStore.Video.Media.RELATIVE_PATH, "Movies");
+            contentValues.put(MediaStore.Video.Media.IS_PENDING, 1);
+        }
         return contentValues;
     }
     public static Uri getMkvUri(final LectureItem item) {
@@ -67,7 +99,7 @@ public class Utils {
         String[] params = new String[] {getMkvFileName(item), getMkvSubject(item)};
 
         Cursor cursor = resolver.query(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, columns, criteria, params, null);
-        if(cursor != null && cursor.moveToFirst()) {
+        if(cursor != null && cursor.moveToLast()) {
             @SuppressLint("Range")
             int id = cursor.getInt(cursor.getColumnIndex(MediaStore.MediaColumns._ID));
             cursor.close();
@@ -78,13 +110,21 @@ public class Utils {
     }
 
     public static boolean mkvExists(LectureItem item) {
-        // the item should exist in db, and on disk.
-        Uri uri = getMkvUri(item);
-        if(uri == null) {
+        ContentResolver resolver = ContextManager.getContext().getContentResolver();
+        String[] columns = new String[]{MediaStore.MediaColumns.DATA};
+        String criteria = MediaStore.Video.Media.DISPLAY_NAME + "= ?" + " and "
+                + MediaStore.Video.Media.CATEGORY + "= ?";
+        String[] params = new String[] {getMkvFileName(item), getMkvSubject(item)};
+
+        Cursor cursor = resolver.query(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, columns, criteria, params, null);
+        if(cursor != null && cursor.moveToLast()) {
+            @SuppressLint("Range")
+            String filepath = cursor.getString(0);
+            cursor.close();
+            return new File(filepath).exists();
+        } else {
             return false;
         }
-        DocumentFile file = DocumentFile.fromSingleUri(ContextManager.getContext(), uri);
-        return file != null && file.exists();
     }
 
     public static String truncateTo(final String str, final int truncateLen) {
@@ -109,13 +149,13 @@ public class Utils {
         return outputDir;
     }
 
-    final static List<String> FLIPPED_LECTURE_QUALITY = Arrays.asList("400xLow", "600xMedium", "800xHigh", "1280xHD");
+    final static List<String> FLIPPED_LECTURE_QUALITY = Arrays.asList("1280xHD", "800xHigh", "600xMedium", "400xLow");
 
     public static String getUrlForHighestQualityVideo(final List<String> m3u8Urls) {
         for (String resolution: FLIPPED_LECTURE_QUALITY) {
             for( String url: m3u8Urls) {
                 if (url.contains(resolution)) {
-                    return resolution;
+                    return url;
                 }
             }
         }
@@ -127,7 +167,7 @@ public class Utils {
             String resolution = FLIPPED_LECTURE_QUALITY.get(i);
             for( String url: m3u8Urls) {
                 if (url.contains(resolution)) {
-                    return resolution;
+                    return url;
                 }
             }
         }
