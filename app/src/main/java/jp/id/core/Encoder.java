@@ -3,6 +3,7 @@ package jp.id.core;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.MediaStore;
 
 import com.arthenica.ffmpegkit.FFmpegKitConfig;
@@ -152,20 +153,27 @@ public class Encoder {
 
             commandArgs.addAll(mapArgs);
 
-            ContentResolver resolver = ContextManager.getContext().getContentResolver();
-            if(Utils.mkvExists(item)) {
-                // this section should not be reached.
-                AppLogs.error(tag, "mkv already exists?");
-                return false;
+            Uri outUri = Utils.queryOrInsert(item);
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                // Update DISPLAY_NAME to set it correctly on Android 9 and below.
+                ContentValues contentValues = new ContentValues();
+                contentValues.put(MediaStore.Video.Media.DISPLAY_NAME, Utils.getMkvFileName(item));
+                updateContent(outUri, contentValues);
+                outUri = Utils.getMkvUri(item);
             }
-            ContentValues contentValues = Utils.getMkvContentValues(item);
-            Uri outUri = resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues);
+
             String outpath = FFmpegKitConfig.getSafParameterForWrite(ContextManager.getContext(), outUri);
             commandArgs.add(outpath);
-
             Session session = Utils.runFfmpeg(commandArgs);
-            Utils.collectLogs(session.getAllLogs(), 20);
 
+            // IS_PENDING is applicable only to Android 10 and above.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ContentValues contentValues = new ContentValues();
+                contentValues.put(MediaStore.Video.Media.IS_PENDING, 0);
+                updateContent(outUri, contentValues);
+            }
+
+            Utils.collectLogs(session.getAllLogs(), 20);
         } catch (Exception ex) {
             AppLogs.error(tag, String.format("[%s]: ffmpeg exception: %s", item.getId(), ex));
             String filename = trackFiles.get(0) != null ? trackFiles.get(0).getName() : "null";
@@ -178,5 +186,10 @@ public class Encoder {
             return false;
         }
         return true;
+    }
+
+    public static int updateContent(Uri uri, ContentValues contentValues) {
+        ContentResolver resolver = ContextManager.getContext().getContentResolver();
+        return resolver.update(uri, contentValues, null, null);
     }
 }
