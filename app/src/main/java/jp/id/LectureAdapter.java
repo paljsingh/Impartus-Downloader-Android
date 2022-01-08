@@ -37,7 +37,6 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
 
     private final Impartus impartus;
     private final Context context;
-    private int downloadCounter = 0;
 
     private final String tag = "LectureAdapter";
 
@@ -149,7 +148,7 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
                     menuItem.setEnabled(false);
                     Lectures.incrementDownloads();
 
-                    if (downloadCounter > 1) {
+                    if (Lectures.isDownloadInProgress()) {
                         AppLogs.info(tag, String.format("Download queued for %s", Utils.getMkvFileName(lectureItem)));
                         Toast.makeText(view.getContext(), "Download Queued!", Toast.LENGTH_SHORT).show();
                         lectureItem.setDownloadStatus(LectureItem.DownloadStatus.STARTED.ordinal());
