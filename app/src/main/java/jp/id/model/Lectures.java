@@ -3,8 +3,6 @@ package jp.id.model;
 import java.util.ArrayList;
 import java.util.List;
 
-import jp.id.core.Utils;
-
 public class Lectures {
     private static final List<LectureItem> lectureItems = new ArrayList<>();
     private static int numDownloadsInProgress = 0;

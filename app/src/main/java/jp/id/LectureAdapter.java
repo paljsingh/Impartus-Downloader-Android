@@ -116,7 +116,7 @@ public class LectureAdapter extends RecyclerView.Adapter<LectureAdapter.ViewHold
         holder.date.setText(lectureItem.getDate());
         holder.flipped.setText(String.format("Flipped: %s", lectureItem.isFlipped() ? "Y" : "N"));
 
-        holder.viewPosition.setText(String.format("[ %s ]", String.valueOf(lectureItem.getViewPosition()+1)));
+        holder.viewPosition.setText(String.format("[ %s ]", lectureItem.getViewPosition()+1));
 
         // create options menu...
         holder.contextMenuButton.setOnClickListener(view -> {
