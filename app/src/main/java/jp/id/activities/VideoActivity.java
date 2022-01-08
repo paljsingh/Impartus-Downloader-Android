@@ -48,6 +48,7 @@ public class VideoActivity extends AppCompatActivity {
     private Impartus impartus;
     private SwipeRefreshLayout swipeContainer;
     private static final int REQUEST_WRITE_STORAGE = 101;
+    private RecyclerView mRecyclerView;
 
     @SuppressLint("StaticFieldLeak")
     private static LectureAdapter lectureAdapter = null;
@@ -65,7 +66,7 @@ public class VideoActivity extends AppCompatActivity {
             StrictMode.setThreadPolicy(policy);
         }
         if (Build.VERSION.SDK_INT <=28 && !hasStoragePermission()) {
-            Log.i(tag, "requesting storage permission: %s");
+            Log.i(tag, "requesting storage permission");
             requestStoragePermission();
         } else {
             setContent();
@@ -76,7 +77,7 @@ public class VideoActivity extends AppCompatActivity {
         ContextManager.setContext(this.getBaseContext());
 
         setContentView(R.layout.activity_video);
-        RecyclerView mRecyclerView = findViewById(R.id.recyclerView);//set to whatever view id you use
+        mRecyclerView = findViewById(R.id.recyclerView);//set to whatever view id you use
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         assert toolbar != null;
@@ -92,6 +93,10 @@ public class VideoActivity extends AppCompatActivity {
 
         fetchAsyncLecturesIfNeeded(false);
         attachAdapter();
+        int restorePosition = Math.min(Lectures.getLastPosition(), Lectures.getLectures().size());
+        if (mRecyclerView.getLayoutManager() != null) {
+            mRecyclerView.getLayoutManager().scrollToPosition(restorePosition);
+        }
     }
 
     private void fetchAsyncLecturesIfNeeded(final boolean forceRefresh) {
@@ -135,9 +140,9 @@ public class VideoActivity extends AppCompatActivity {
         if (requestCode == REQUEST_WRITE_STORAGE) {
             if (! (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
                 noStoragePermissionToast();
+            } else {
+                setContent();
             }
-        } else {
-            setContent();
         }
     }
 
@@ -172,13 +177,11 @@ public class VideoActivity extends AppCompatActivity {
 
         long lastPersistEpoch = Long.parseLong(Utils.getDataKey("lastPersistEpoch","0"));
         long lastRefreshEpoch = Long.parseLong(Utils.getDataKey("lastRefreshEpoch","0"));
-        boolean downloadsInProgress = Long.parseLong(Utils.getDataKey("numDownloads", "0")) > 0;
-
         boolean dataPersisted = jsonArray != null;
         boolean dataIsStale = System.currentTimeMillis() - lastPersistEpoch <= staleThreshold;
         boolean refreshedVeryRecently = System.currentTimeMillis() - lastRefreshEpoch <= minRefreshThreshold;
 
-        if (! downloadsInProgress && ! refreshedVeryRecently) {
+        if (! Lectures.isDownloadInProgress() && ! refreshedVeryRecently) {
             return forceRefresh || !dataPersisted || dataIsStale;
         }
         return false;
@@ -203,10 +206,19 @@ public class VideoActivity extends AppCompatActivity {
         recyclerView.setAdapter(lectureAdapter);
     }
 
+    @Override
+    public void onPause() {
+        int firstVisiblePosition = 0;
+        if (mRecyclerView.getLayoutManager() != null) {
+            firstVisiblePosition = ((LinearLayoutManager) mRecyclerView.getLayoutManager()).findFirstVisibleItemPosition();
+        }
+        Lectures.setLastPosition(firstVisiblePosition);
+        super.onPause();
+    }
+
     public void onClickSettingsButton(View view) {
         SettingsFragment settingsFragment = new SettingsFragment();
         setContentView(R.layout.settings);
-
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.settings, settingsFragment)
                 .commit();
@@ -278,15 +290,18 @@ public class VideoActivity extends AppCompatActivity {
 
             List<LectureItem> lectureItems = new ArrayList<>();
             boolean fetchRegular = Utils.getPrefsKey("regular_videos", true);
-            if (fetchRegular) {
-                AppLogs.info(tag, "Fetching regular lectures");
-                lectureItems.addAll(impartus.getLectures(subjects));
-            }
+            int viewIndex = 0;
 
             boolean fetchFlipped = Utils.getPrefsKey("flipped_videos", false);
             if (fetchFlipped) {
                 AppLogs.info(tag, "Fetching flipped lectures");
-                lectureItems.addAll(impartus.getFlippedLectures(subjects));
+                lectureItems.addAll(impartus.getFlippedLectures(subjects, viewIndex));
+            }
+
+            if (fetchRegular) {
+                AppLogs.info(tag, "Fetching regular lectures");
+                lectureItems.addAll(impartus.getLectures(subjects, viewIndex));
+                viewIndex += lectureItems.size();
             }
 
             Lectures.setLectures(lectureItems);
