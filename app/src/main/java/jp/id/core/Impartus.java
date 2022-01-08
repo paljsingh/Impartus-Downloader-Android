@@ -245,11 +245,10 @@ public class Impartus implements Parcelable {
         return new String(data, StandardCharsets.UTF_8);
     }
 
-    public List<LectureItem> getFlippedLectures(List<SubjectItem> subjects) {
+    public List<LectureItem> getFlippedLectures(List<SubjectItem> subjects, int viewIndex) {
 
         final List<LectureItem> lectures = new ArrayList<>();
 
-        int viewIndex = 0;
         for (int i = 0; i < subjects.size(); i++) {
             SubjectItem subjectItem = subjects.get(i);
 
@@ -271,8 +270,7 @@ public class Impartus implements Parcelable {
                         int numLecturesInCategory = lecturesInCategory.length();
 
                         for (int k = 0; k < numLecturesInCategory; k++) {
-                            JSONObject lecture = lecturesInCategory.getJSONObject(j);
-
+                            JSONObject lecture = lecturesInCategory.getJSONObject(k);
 
                             int lectureId = Integer.parseInt(lecture.get("fcid").toString());
                             int seqNo = numLecturesInCategory - k;
@@ -301,11 +299,9 @@ public class Impartus implements Parcelable {
         return lectures;
     }
 
-    public List<LectureItem> getLectures(List<SubjectItem> subjects) {
+    public List<LectureItem> getLectures(List<SubjectItem> subjects, int viewIndex) {
         final List<LectureItem> lectures = new ArrayList<>();
 
-
-        int viewIndex = 0;
         for (int i = 0; i < subjects.size(); i++) {
             SubjectItem subjectItem = subjects.get(i);
 
@@ -481,6 +477,10 @@ public class Impartus implements Parcelable {
                         AppLogs.error(tag, String.format("Error deleting file %s", file.getAbsolutePath()));
                         return;
                     }
+                }
+                // also delete parent folder.
+                if (tempDir.exists() && tempDir.isDirectory() && Objects.requireNonNull(tempDir.list()).length == 0) {
+                    tempDir.delete();
                 }
             }
         } else {
