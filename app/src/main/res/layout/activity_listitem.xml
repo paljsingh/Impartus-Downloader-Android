@@ -173,6 +173,20 @@
             app:layout_constraintEnd_toEndOf="parent"
             tools:ignore="SmallSp" />
 
+        <TextView
+            android:id="@+id/view_position"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#aaa"
+            android:textSize="11sp"
+            android:text=""
+            android:gravity="center_horizontal"
+            android:layout_marginBottom="8dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+         />
+
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
